@@ -1,35 +1,55 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [loggedIn, setLoggedIn] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+
+  // Login Page UI (HTML/CSS + JS Functionality - uses no backend)
+  // Works with all username/password combinations
+    if (!loggedIn) {
+    return (
+      <div className="page">
+        <div className="card-ui">
+          <h1>BCA Club Dashboard</h1>
+          <p className="subtitle">Please sign in to continue.</p>
+
+          <input
+            type="text"
+            placeholder="Email"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+
+          <button onClick={() => setLoggedIn(true)}>
+            Sign in
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="page">
+      <div className="card-ui">
+        <h1>Hello World</h1>
+        <p className="subtitle">You’re logged in :D</p>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </div>
   )
 }
+
+  // when login button is clicked, setLoggedIn is set to true, 
+  // advances to next page
+
+  // Goes to the next page (currently same for both student & admin)
 
 export default App
