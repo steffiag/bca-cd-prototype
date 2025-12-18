@@ -48,7 +48,7 @@ function App() {
             <a
               href="#"
               onClick={() => setPage("morning")}
-              className={page === "morning" ? "active" : ""}
+              className={page.startsWith("morning") ? "active" : ""}
             >
               Morning Club Management
             </a>
@@ -152,11 +152,18 @@ function App() {
                       <option>Art</option>
                       <option>Other</option>
                     </select><br />
-                    <select>
-                      <option>Add Club</option>
-                      <option>AI Merge</option>
-                      <option>Add Teacher</option>
-                      <option>Archive Clubs</option>
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value === "ai-merge") {
+                          setPage("morning-ai-merge");
+                        }
+                      }}
+                    >
+                      <option value="">-- Select --</option>
+                      <option value="add">Add Club</option>
+                      <option value="ai-merge">AI Merge</option>
+                      <option value="teacher">Add Teacher</option>
+                      <option value="archive">Archive Clubs</option>
                     </select>
                   </div>
                 </div>
@@ -242,6 +249,130 @@ function App() {
                     ))}
                   </tbody>
                 </table>
+              </>
+            )}
+            {page === "morning-ai-merge" && (
+              <>
+                <div className="page-title">
+                  Morning Club Management: AI Merges
+                </div>
+
+                <p style={{ textAlign: "center", marginBottom: "25px", color: "#1e3a5f" }}>
+                  AI has analyzed proposed and approved clubs and grouped clubs that may
+                  benefit from merging based on mission statements, activities, and goals.
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "20px",
+                    marginBottom: "30px",
+                  }}
+                >
+                  <button>Send Email Suggesting Selected Clubs Merge</button>
+
+                  <div>
+                    <strong>Deadline:</strong>{" "}
+                    <input
+                      type="date"
+                      value="2026-03-15"
+                      readOnly
+                      style={{ padding: "6px" }}
+                    />
+                  </div>
+                </div>
+
+                {[
+                  {
+                    reason:
+                      "These clubs focus on hands-on STEM problem solving and competitive math-based challenges.",
+                    clubs: [
+                      { name: "Calculus Club", members: 8 },
+                      { name: "Math Competition Club", members: 6 },
+                      { name: "Problem Solvers Club", members: 5 },
+                    ],
+                  },
+                  {
+                    reason:
+                      "These clubs center around creative writing, storytelling, and literary discussion.",
+                    clubs: [
+                      { name: "Creative Writing Club", members: 7 },
+                      { name: "Poetry Club", members: 4 },
+                    ],
+                  },
+                  {
+                    reason:
+                      "These clubs emphasize culinary creativity and baking fundamentals.",
+                    clubs: [
+                      { name: "Baking Club", members: 5 },
+                      { name: "Cooking Club", members: 9 },
+                    ],
+                  },
+                ].map((group, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      background: "#e7f0fb",
+                      borderRadius: "12px",
+                      padding: "20px",
+                      marginBottom: "25px",
+                      boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: "600",
+                        marginBottom: "15px",
+                        color: "#1e3a5f",
+                      }}
+                    >
+                      AI Reason for grouping:
+                      <div style={{ fontWeight: "400", marginTop: "6px" }}>
+                        {group.reason}
+                      </div>
+                    </div>
+
+                    {group.clubs.map((club, idx) => (
+                      <div
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        alignItems: "center", // <-- this vertically centers items
+                        justifyContent: "space-between",
+                        background: "#ffffff",
+                        padding: "12px 16px",
+                        borderRadius: "8px",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <button
+                          style={{
+                            width: "32px",
+                            height: "32px",
+                            borderRadius: "6px",
+                            border: "none",
+                            color: "white",
+                            fontSize: "16px",
+                            cursor: "pointer",
+                            display: "flex",          
+                            alignItems: "center",   
+                            justifyContent: "center", 
+                          }}
+                          title="Remove from merge group"
+                        >
+                          🗑️
+                        </button>
+                        <strong>{club.name}</strong>
+                      </div>
+
+                      <span className="pill">Members: {club.members}</span>
+                    </div>
+
+                    ))}
+                  </div>
+                ))}
               </>
             )}
 
@@ -368,7 +499,6 @@ function App() {
                 </table>
               </>
             )}
-
             {/* Teacher Availability */}
             {page === "teacher" && (
               <>
