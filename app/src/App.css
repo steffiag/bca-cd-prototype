@@ -229,3 +229,46 @@ th {
   display: inline-block;
   min-width: 50px;
 }
+
+/* =====================
+   Status/Availability Colors
+   ===================== */
+.status-approved {
+  background: #4caf50;
+  color: white;
+  border-radius: 6px;
+  padding: 4px 8px;
+  display: inline-block;
+}
+
+.status-pending {
+  background: #ff9800;
+  color: white;
+  border-radius: 6px;
+  padding: 4px 8px;
+  display: inline-block;
+}
+
+.status-reject {
+  background: #f44336;
+  color: white;
+  border-radius: 6px;
+  padding: 4px 8px;
+  display: inline-block;
+}
+
+.available-yes {
+  background: #4caf50;
+  color: white;
+  border-radius: 6px;
+  padding: 4px 8px;
+  display: inline-block;
+}
+
+.available-no {
+  background: #f44336;
+  color: white;
+  border-radius: 6px;
+  padding: 4px 8px;
+  display: inline-block;
+}
