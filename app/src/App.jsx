@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import ClubGrid from "./components/ClubGrid";
 
 function App() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -7,6 +8,43 @@ function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [portal, setPortal] = useState("admin"); // "admin" or "student"
+
+  const morningClubs = [
+  {
+    name: "Robotics Club",
+    mission: "Build, program, and compete with robots.",
+    members: 18,
+    image: "/images/robotics.jpg",
+  },
+  {
+    name: "Creative Writing",
+    mission: "Explore storytelling, poetry, and prose.",
+    members: 12,
+    image: "/images/creative-writing.jpg",
+  },
+  {
+    name: "Chess Club",
+    mission: "Compete with others in a supportive environment",
+    members: 4,
+    image: "/images/chess.jpg",
+  },
+];
+
+const wednesdayClubs = [
+  {
+    name: "Drama Club",
+    mission: "Acting, directing, and stage performance.",
+    members: 15,
+    image: "/images/drama.jpg",
+  },
+  {
+    name: "Art Club",
+    mission: "Drawing, painting, and creative expression.",
+    members: 10,
+    image: "/images/art.jpeg",
+  },
+];
+
 
   // =====================
   // LOGIN PAGE
@@ -41,34 +79,53 @@ function App() {
   // =====================
   return (
     <div className="container">
-      {/* Sidebar */}
-      <div className="sidebar">
-        {portal === "admin" && (
-          <>
-            <a
-              href="#"
-              onClick={() => setPage("morning")}
-              className={page.startsWith("morning") ? "active" : ""}
-            >
-              Morning Club Management
-            </a>
-            <a
-              href="#"
-              onClick={() => setPage("wednesday")}
-              className={page === "wednesday" ? "active" : ""}
-            >
-              Wednesday Club Management
-            </a>
-            <a
-              href="#"
-              onClick={() => setPage("teacher")}
-              className={page === "teacher" ? "active" : ""}
-            >
-              Teacher Availability
-            </a>
-          </>
-        )}
-      </div>
+    <div className="sidebar">
+      {portal === "admin" && (
+        <>
+          <a
+            href="#"
+            onClick={() => setPage("morning")}
+            className={page.startsWith("morning") ? "active" : ""}
+          >
+            Morning Club Management
+          </a>
+          <a
+            href="#"
+            onClick={() => setPage("wednesday")}
+            className={page === "wednesday" ? "active" : ""}
+          >
+            Wednesday Club Management
+          </a>
+          <a
+            href="#"
+            onClick={() => setPage("teacher")}
+            className={page === "teacher" ? "active" : ""}
+          >
+            Teacher Availability
+          </a>
+        </>
+      )}
+
+      {portal === "student" && (
+        <>
+          <a
+            href="#"
+            onClick={() => setPage("morning")}
+            className={page === "morning" ? "active" : ""}
+          >
+            Morning Clubs
+          </a>
+          <a
+            href="#"
+            onClick={() => setPage("wednesday")}
+            className={page === "wednesday" ? "active" : ""}
+          >
+            Wednesday Clubs
+          </a>
+        </>
+      )}
+    </div>
+
 
       {/* Main content */}
       <div className="main">
@@ -338,7 +395,7 @@ function App() {
                       key={idx}
                       style={{
                         display: "flex",
-                        alignItems: "center", // <-- this vertically centers items
+                        alignItems: "center", // 
                         justifyContent: "space-between",
                         background: "#ffffff",
                         padding: "12px 16px",
@@ -624,14 +681,16 @@ function App() {
             )}
           </>
         )}
-
-        {/* =====================
-            STUDENT PORTAL CONTENT
-        ===================== */}
         {portal === "student" && (
-          <div style={{ textAlign: "center", marginTop: "50px", fontSize: "24px" }}>
-            Welcome to the Student Portal :D
-          </div>
+          <>
+            {page === "morning" && (
+              <ClubGrid title="Morning Clubs" clubs={morningClubs} />
+            )}
+
+            {page === "wednesday" && (
+              <ClubGrid title="Wednesday Clubs" clubs={wednesdayClubs} />
+            )}
+          </>
         )}
       </div>
     </div>
