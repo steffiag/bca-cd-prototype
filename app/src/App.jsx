@@ -43,7 +43,7 @@ function App() {
     <div className="container">
       {/* Sidebar */}
       <div className="sidebar">
-        {portal === "admin" ? (
+        {portal === "admin" && (
           <>
             <a
               href="#"
@@ -67,8 +67,6 @@ function App() {
               Teacher Availability
             </a>
           </>
-        ) : (
-          <></>
         )}
       </div>
 
@@ -80,7 +78,7 @@ function App() {
             onClick={() => setPortal("admin")}
             style={{
               marginRight: "10px",
-              background: portal === "admin" ? "#6366f1" : "#9e9e9e",
+              background: portal === "admin" ? "#4a90e2" : "#9e9e9e",
               color: "white",
               padding: "6px 12px",
               border: "none",
@@ -93,7 +91,7 @@ function App() {
           <button
             onClick={() => setPortal("student")}
             style={{
-              background: portal === "student" ? "#6366f1" : "#9e9e9e",
+              background: portal === "student" ? "#4a90e2" : "#9e9e9e",
               color: "white",
               padding: "6px 12px",
               border: "none",
@@ -192,20 +190,56 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td><div className="checkbox"></div></td>
-                      <td>Baking Club</td>
-                      <td>anygup26@bergen.org</td>
-                      <td>Other</td>
-                      <td>Dr. Carter</td>
-                      <td>Room 138A</td>
-                      <td>Thursday</td>
-                      <td>7:30</td>
-                      <td>Yes</td>
-                      <td>Pending</td>
-                      <td><button>Edit</button></td>
-                      <td>No</td>
-                    </tr>
+                    {[
+                      {
+                        club: "Baking Club",
+                        email: "anygup26@bergen.org",
+                        category: "Other",
+                        advisor: "Dr. Carter",
+                        place: "Room 138A",
+                        day: "Thursday",
+                        time: "7:30",
+                        members: "Yes",
+                        status: "Pending",
+                      },
+                      {
+                        club: "Calculus Club",
+                        email: "stegeo26@bergen.org",
+                        category: "STEM",
+                        advisor: "Mr. Isecke",
+                        place: "Room 138B",
+                        day: "Monday",
+                        time: "7:30",
+                        members: "No",
+                        status: "Pending",
+                      },
+                      {
+                        club: "Creative Writing Club",
+                        email: "brofol@bergen.org",
+                        category: "Humanities",
+                        advisor: "Mr. Respass",
+                        place: "Room 136",
+                        day: "Tuesday",
+                        time: "7:35",
+                        members: "Yes",
+                        status: "Approved",
+                      },
+                    ].map((club, i) => (
+                      <tr key={i}>
+                        <td><div className="checkbox"></div></td>
+                        <td>{club.club}</td>
+                        <td>{club.email}</td>
+                        <td>{club.category}</td>
+                        <td>{club.advisor}</td>
+                        <td>{club.place}</td>
+                        <td>{club.day}</td>
+                        <td>{club.time}</td>
+                        <td>{club.members}</td>
+                        <td>{club.status}</td>
+                        <td><button>Edit</button></td>
+                        <td>No</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </>
