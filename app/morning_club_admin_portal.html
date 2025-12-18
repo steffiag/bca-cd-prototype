@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Portal – Morning Club Management</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f2f2f2;
+    }
+
+    /* Layout */
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      background: #1f73d8;
+      color: white;
+      padding-top: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 16px 20px;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+    }
+
+    .sidebar a:hover {
+      background: rgba(255,255,255,0.15);
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      padding: 30px 40px;
+    }
+
+    .portal-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .page-title {
+      text-align: center;
+      font-size: 36px;
+      margin-bottom: 30px;
+    }
+
+    /* Top controls */
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 25px;
+    }
+
+    .filter-box label {
+      display: block;
+      margin: 8px 0 4px;
+      font-size: 14px;
+    }
+
+    select, button {
+      padding: 6px 10px;
+      margin-right: 6px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #9e9e9e;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #7f7f7f;
+    }
+
+    .tools {
+      text-align: right;
+    }
+
+    .tools select {
+      margin-bottom: 8px;
+    }
+
+    /* Status update */
+    .status-update {
+      margin: 20px 0;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #d9d9d9;
+    }
+
+    th, td {
+      border: 2px solid #bdbdbd;
+      padding: 8px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    th {
+      background: #eeeeee;
+      font-weight: bold;
+    }
+
+    .checkbox {
+      width: 22px;
+      height: 22px;
+      background: #bdbdbd;
+      display: inline-block;
+      position: relative;
+    }
+
+    .checkbox::after {
+      content: "×";
+      position: absolute;
+      top: -2px;
+      left: 4px;
+      font-size: 22px;
+      color: white;
+    }
+
+    .pill {
+      background: white;
+      border-radius: 6px;
+      padding: 4px 8px;
+      display: inline-block;
+      min-width: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <a href="#">Morning Club Management</a>
+      <a href="#">Wednesday Club Management</a>
+      <a href="#">Teacher Availability</a>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+      <div class="portal-title">Admin Portal</div>
+      <div class="page-title">Morning Club Management</div>
+
+      <div class="controls">
+        <div class="filter-box">
+          <strong>Filter by:</strong>
+          <label>Category:</label>
+          <select>
+              <option value="">-- Select --</option>
+              <option value="stem">STEM</option>
+              <option value="humanities">Humanities</option>
+              <option value="art">Art</option>
+              <option value="other">Other</option>
+            </select>
+
+          <label>Status:</label>
+          <select>
+              <option value="">-- Select --</option>
+              <option value="stem">STEM</option>
+              <option value="humanities">Humanities</option>
+              <option value="art">Art</option>
+              <option value="other">Other</option>
+            </select>
+          <br /><br />
+          <button>Clear</button>
+          <button>Submit</button>
+        </div>
+
+        <div class="tools">
+          <strong>Other Tools:</strong><br />
+          <select>
+              <option value="">-- Select --</option>
+              <option value="stem">STEM</option>
+              <option value="humanities">Humanities</option>
+              <option value="art">Art</option>
+              <option value="other">Other</option>
+            </select><br />
+          <select>
+            <option>Add Club</option>
+            <option>AI Merge</option>
+            <option>Add Teacher</option>
+            <option>Archive Clubs</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="status-update">
+        Update selected <strong>STATUS</strong> TO:
+        <select>
+          <option value="">-- Select --</option>
+          <option value="approved">Approved</option>
+          <option value="pending">Pending</option>
+          <option value="reject">Reject</option>
+        </select>
+        <button>Submit</button>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Club</th>
+            <th>Leader Email</th>
+            <th>Category</th>
+            <th>Advisor</th>
+            <th>Meeting Place</th>
+            <th>Day</th>
+            <th>Time</th>
+            <th>5 members</th>
+            <th>Status</th>
+            <th>View/Edit</th>
+            <th>Merge?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="checkbox"></div></td>
+            <td>Baking Club</td>
+            <td>anygup26@bergen.org</td>
+            <td>Other</td>
+            <td>Dr. Carter</td>
+            <td>Room 138A</td>
+            <td>Thursday</td>
+            <td>7:30</td>
+            <td>Yes</td>
+            <td>Pending</td>
+            <td>
+              <button onclick="openEditPopup()">Edit</button>
+            </td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td><div class="checkbox"></div></td>
+            <td>Calculus Club</td>
+            <td>stegeo26@bergen.org</td>
+            <td>STEM</td>
+            <td>Mr. Isecke</td>
+            <td>Room 138B</td>
+            <td>Monday</td>
+            <td>7:30</td>
+            <td>No</td>
+            <td>Pending</td>
+            <td>
+              <button onclick="openEditPopup()">Edit</button>
+            </td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td><div class="checkbox"></div></td>
+             <td>Creative Writing Club</td>
+            <td>brofol@bergen.org</td>
+            <td>Humanities</td>
+            <td>Mr. Respass</td>
+            <td>Room 136</td>
+            <td>Tuesday</td>
+            <td>7:35</td>
+            <td>Yes</td>
+            <td>Approved</td>
+            <td>
+              <button onclick="openEditPopup()">Edit</button>
+            </td>
+            <td>No</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
