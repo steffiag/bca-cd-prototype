@@ -146,7 +146,10 @@ const wednesdayClubs = [
             Admin Portal
           </button>
           <button
-            onClick={() => setPortal("student")}
+            onClick={() => {setPortal("student");
+              setPage("morning");
+            }}
+
             style={{
               background: portal === "student" ? "#4a90e2" : "#9e9e9e",
               color: "white",
