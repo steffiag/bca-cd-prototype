@@ -131,6 +131,28 @@ const wednesdayClubs = [
 
       {/* Main content */}
       <div className="main">
+        {user && (
+  <div style={{ position: "fixed", top: 20, right: 20, zIndex: 1000 }}>
+    <button
+      onClick={() => {
+        fetch("http://localhost:4000/auth/logout", { credentials: "include" })
+          .then(() => setUser(null))
+          .catch((err) => console.error(err));
+      }}
+      style={{
+        background: "#4a90e2",
+        color: "white",
+        border: "none",
+        padding: "6px 12px",
+        borderRadius: "6px",
+        cursor: "pointer",
+      }}
+    >
+      Logout
+    </button>
+  </div>
+)} 
+
       <div className="portal-title">{portal === "admin" ? "Admin Portal" : "Student Portal"}</div>
         {/* Portal Toggle Buttons */}
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
