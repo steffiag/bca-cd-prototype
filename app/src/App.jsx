@@ -1,15 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import ClubGrid from "./components/ClubGrid";
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [page, setPage] = useState("morning"); // default admin page
+  const [user, setUser] = useState(null);
+  const [page, setPage] = useState("morning"); 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [portal, setPortal] = useState("admin"); // "admin" or "student"
+  const portal = user?.role === "admin" ? "admin" : "student";
 
-  const morningClubs = [
+  useEffect(() => {
+  fetch("http://localhost:4000/auth/user", {
+    credentials: "include",
+  })
+    .then((res) => res.json())
+    .then((data) => setUser(data))
+    .catch(() => setUser(null));
+}, []);
+
+  const morningClubs = [ 
   {
     name: "Robotics Club",
     mission: "Build, program, and compete with robots.",
@@ -49,30 +58,25 @@ const wednesdayClubs = [
   // =====================
   // LOGIN PAGE
   // =====================
-  if (!loggedIn) {
-    return (
-      <div className="page">
-        <div className="card-ui">
-          <h1>BCA Club Dashboard</h1>
-          <p className="subtitle">Please sign in to continue.</p>
+  if (!user) {
+  return (
+    <div className="page">
+      <div className="card-ui">
+        <h1>BCA Club Dashboard</h1>
+        <p className="subtitle">Sign in with your school account</p>
 
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button onClick={() => setLoggedIn(true)}>Sign in</button>
-        </div>
+        <button
+          onClick={() =>
+            (window.location.href = "http://localhost:4000/auth/google")
+          }
+        >
+          Login with Google
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
 
   // =====================
   // PORTAL PAGE (AFTER LOGIN)
@@ -550,7 +554,7 @@ const wednesdayClubs = [
                         <td>{club.advisor}</td>
                         <td>{club.place}</td>
                         <td>{club.members}</td>
-                        <td>{club.requested}</td>
+                        <td>{club.requested}?</td>
                         <td>{club.status}</td>
                         <td><button>Edit</button></td>
                       </tr>
