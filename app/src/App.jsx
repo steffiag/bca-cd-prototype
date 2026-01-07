@@ -2,21 +2,20 @@ import { useState, useEffect } from "react";
 import "./App.css";
 import ClubGrid from "./components/ClubGrid";
 
+
 function App() {
   const [user, setUser] = useState(null);
+  const [portal, setPortal] = useState(null); 
   const [page, setPage] = useState("morning"); 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const portal = user?.role === "admin" ? "admin" : "student";
 
   useEffect(() => {
-  fetch("http://localhost:4000/auth/user", {
-    credentials: "include",
-  })
-    .then((res) => res.json())
-    .then((data) => setUser(data))
-    .catch(() => setUser(null));
-}, []);
+    fetch("http://localhost:4000/auth/user", { credentials: "include" })
+      .then(res => res.json())
+      .then(data => {
+        setUser(data);
+        setPortal("admin");
+      });
+  }, []);
 
   const morningClubs = [ 
   {
@@ -77,7 +76,6 @@ const wednesdayClubs = [
   );
 }
 
-
   // =====================
   // PORTAL PAGE (AFTER LOGIN)
   // =====================
@@ -133,6 +131,7 @@ const wednesdayClubs = [
 
       {/* Main content */}
       <div className="main">
+      <div className="portal-title">{portal === "admin" ? "Admin Portal" : "Student Portal"}</div>
         {/* Portal Toggle Buttons */}
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
           <button
@@ -165,11 +164,6 @@ const wednesdayClubs = [
           >
             Student Portal
           </button>
-        </div>
-
-        {/* Portal Title */}
-        <div className="portal-title">
-          {portal === "admin" ? "Admin Portal" : "Student Portal"}
         </div>
 
         {/* =====================
