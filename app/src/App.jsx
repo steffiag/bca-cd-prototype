@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 import ClubGrid from "./components/ClubGrid";
+import TeacherAvailability from "./components/TeacherAvailability";
 
 
 function App() {
   const [user, setUser] = useState(null);
   const [portal, setPortal] = useState(null); 
   const [page, setPage] = useState("morning"); 
+  const [teacherAvailability, setTeacherAvailability] = useState([]);
 
   useEffect(() => {
     fetch("http://localhost:4000/auth/user", { credentials: "include" })
@@ -16,6 +18,13 @@ function App() {
         setPortal("admin");
       });
   }, []);
+
+  useEffect(() => {
+  fetch("http://localhost:4000/teacher-availability", { credentials: "include" })
+    .then((res) => res.json())
+    .then((data) => setTeacherAvailability(data))
+    .catch((err) => console.error(err));
+}, []);
 
   const morningClubs = [ 
   {
@@ -580,139 +589,13 @@ const wednesdayClubs = [
               </>
             )}
             {/* Teacher Availability */}
-            {page === "teacher" && (
-              <>
-                <div className="page-title">Wednesday Club Teacher Availability</div>
-
-                <div className="controls">
-                  <div className="filter-box">
-                    <strong>Filter by:</strong>
-                    <label>Available:</label>
-                    <select>
-                      <option>-- Select --</option>
-                      <option>Yes</option>
-                      <option>No</option>
-                    </select>
-                    <label>Assigned:</label>
-                    <select>
-                      <option>-- Select --</option>
-                      <option>Yes</option>
-                      <option>No</option>
-                    </select>
-                    <br />
-                    <button>Clear</button>
-                    <button>Submit</button>
-                  </div>
-
-                  <div className="tools">
-                    <strong>Other Tools:</strong>
-                    <br />
-                    <select>
-                      <option>-- Select --</option>
-                      <option>Add Club</option>
-                      <option>Archive Clubs</option>
-                      <option>Add Teacher</option>
-                      <option>Reset Availability</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button style={{ marginBottom: "1rem" }}>
-                  Send Email to Teachers Who Haven’t Responded
-                </button>
-
-                <table>
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Rm #</th>
-                      <th>Available</th>
-                      <th>Department</th>
-                      <th>Assigned to Club</th>
-                      <th>View/Edit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      {
-                        name: "Dr. Carter",
-                        email: "hencar@bergen.org",
-                        room: "138A",
-                        available: "Yes",
-                        department: "Math",
-                        assigned: "Coding Club",
-                      },
-                      {
-                        name: "Mr. Russo",
-                        email: "chrrus@bergen.org",
-                        room: "51",
-                        available: "No",
-                        department: "Science",
-                        assigned: "Advanced Physics Club",
-                      },
-                      {
-                        name: "Mr. Wilson",
-                        email: "davwil@bergen.org",
-                        room: "42",
-                        available: "Yes",
-                        department: "English",
-                        assigned: "Cooking Club",
-                      },
-                      {
-                        name: "Dr. Penev",
-                        email: "krapen@bergen.org",
-                        room: "261",
-                        available: "Yes",
-                        department: "History",
-                        assigned: "Calculus Club",
-                      },
-                      {
-                        name: "Mr. Madden",
-                        email: "wilmad@bergen.org",
-                        room: "154",
-                        available: "No",
-                        department: "History",
-                        assigned: "History of the Americas Club",
-                      },
-                    ].map((teacher, i) => (
-                      <tr key={i}>
-                        <td>🗑️</td>
-                        <td>{teacher.name}</td>
-                        <td>{teacher.email}</td>
-                        <td>{teacher.room}</td>
-                        <td>{teacher.available}</td>
-                        <td>{teacher.department}</td>
-                        <td>
-                          <select>
-                            <option>{teacher.assigned}</option>
-                            <option>Chess Club</option>
-                            <option>Drama Club</option>
-                            <option>Photography Club</option>
-                            <option>Math Club</option>
-                          </select>
-                        </td>
-                        <td>
-                          <button>View/Edit</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
+            {page === "teacher" && <TeacherAvailability teachers={teacherAvailability} />}
           </>
         )}
         {portal === "student" && (
           <>
-            {page === "morning" && (
-              <ClubGrid title="Morning Clubs" clubs={morningClubs} />
-            )}
-
-            {page === "wednesday" && (
-              <ClubGrid title="Wednesday Clubs" clubs={wednesdayClubs} />
-            )}
+            {page === "morning" && <ClubGrid title="Morning Clubs" clubs={morningClubs} />}
+            {page === "wednesday" && <ClubGrid title="Wednesday Clubs" clubs={wednesdayClubs} />}
           </>
         )}
       </div>
