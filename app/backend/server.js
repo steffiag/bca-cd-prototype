@@ -43,6 +43,35 @@ app.get("/teacher-availability", async (req, res) => {
   }
 });
 
+app.get("/wednesday-club", async (req, res) => {
+  try {
+    const responses = await getFormResponses(
+      "1a7PoNfDMwsEwFasPrA_6k8Fti4__E11xC32Eanchcc8"
+    );
+    console.log(JSON.stringify(responses, null, 2));
+    const wednesday = responses.map((resp) => {
+      const answers = resp.answers;
+      const membersRaw = answers["1341f104"]?.textAnswers.answers[0].value || "";
+      const hasFiveMembers = membersRaw.trim().toLowerCase() === "n/a" ? "No" : "Yes";
+      return {
+        club: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
+        email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
+        category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
+        advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
+        room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
+        members: hasFiveMembers,              
+        req_advisor: (answers["5573285b"]?.textAnswers.answers[0].value || "") + "?",         
+        status: "Pending",
+      };
+    });
+    res.json(wednesday);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch Wednesday club proposals", });
+  }
+});
+
+
 db.sequelize
   .sync()
   .then(() => {

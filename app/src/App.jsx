@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import "./App.css";
 import ClubGrid from "./components/ClubGrid";
 import TeacherAvailability from "./components/TeacherAvailability";
+import WednesdayClubManagement from "./components/WednesdayClubManagement";
 
 
 function App() {
@@ -466,128 +467,7 @@ const wednesdayClubs = [
             )}
 
             {/* Wednesday Club Management */}
-            {page === "wednesday" && (
-              <>
-                <div className="page-title">Wednesday Club Management</div>
-
-                <div className="controls">
-                  <div className="filter-box">
-                    <strong>Filter by:</strong>
-                    <label>Category:</label>
-                    <select>
-                      <option>-- Select --</option>
-                      <option>STEM</option>
-                      <option>Humanities</option>
-                      <option>Art</option>
-                      <option>Other</option>
-                    </select>
-
-                    <label>Status:</label>
-                    <select>
-                      <option>-- Select --</option>
-                      <option>Approved</option>
-                      <option>Pending</option>
-                      <option>Rejected</option>
-                    </select>
-
-                    <label>Advisor:</label>
-                    <select>
-                      <option></option>
-                    </select>
-
-                    <br /><br />
-                    <button>Clear</button>
-                    <button>Submit</button>
-                  </div>
-
-                  <div className="tools">
-                    <strong>Other Tools:</strong><br />
-                    <select>
-                      <option>-- Select --</option>
-                      <option>Add Club</option>
-                      <option>Archive Clubs</option>
-                      <option>Add Teacher</option>
-                      <option>Reset Availability</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="status-update">
-                  Update selected <strong>STATUS</strong> TO:
-                  <select>
-                    <option>-- Select --</option>
-                    <option>Approved</option>
-                    <option>Pending</option>
-                    <option>Rejected</option>
-                  </select>
-                  <button>Submit</button>
-                </div>
-
-                <table>
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>Club</th>
-                      <th>Leader Email</th>
-                      <th>Category</th>
-                      <th>Advisor</th>
-                      <th>Meeting Place</th>
-                      <th>5 members</th>
-                      <th>Requested Advisor</th>
-                      <th>Status</th>
-                      <th>View/Edit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      {
-                        club: "Drawing Club",
-                        email: "anygup26@bergen.org",
-                        category: "Art",
-                        advisor: "Mr. Sen",
-                        place: "Room 138B",
-                        members: "Yes",
-                        requested: "Mr. Sen",
-                        status: "Approved",
-                      },
-                      {
-                        club: "Chess Club",
-                        email: "stegeo26@bergen.org",
-                        category: "STEM",
-                        advisor: "Mr. Djedji",
-                        place: "Room 101",
-                        members: "Yes",
-                        requested: "Mr. Djedji",
-                        status: "Pending",
-                      },
-                      {
-                        club: "Drama Club",
-                        email: "brofol26@bergen.org",
-                        category: "Art",
-                        advisor: "Ms. Pero",
-                        place: "Room 202",
-                        members: "No",
-                        requested: "Ms. Pero",
-                        status: "Approved",
-                      },
-                    ].map((club, i) => (
-                      <tr key={i}>
-                        <td><div className="checkbox"></div></td>
-                        <td>{club.club}</td>
-                        <td>{club.email}</td>
-                        <td>{club.category}</td>
-                        <td>{club.advisor}</td>
-                        <td>{club.place}</td>
-                        <td>{club.members}</td>
-                        <td>{club.requested}?</td>
-                        <td>{club.status}</td>
-                        <td><button>Edit</button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
+            {page === "wednesday" && <WednesdayClubManagement />}
             {/* Teacher Availability */}
             {page === "teacher" && <TeacherAvailability teachers={teacherAvailability} />}
           </>
