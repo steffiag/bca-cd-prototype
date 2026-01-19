@@ -3,6 +3,7 @@ import "./App.css";
 import ClubGrid from "./components/ClubGrid";
 import TeacherAvailability from "./components/TeacherAvailability";
 import WednesdayClubManagement from "./components/WednesdayClubManagement";
+import MorningClubManagement from "./components/MorningClubManagement";
 
 
 function App() {
@@ -203,144 +204,8 @@ const wednesdayClubs = [
         ===================== */}
         {portal === "admin" && (
           <>
-            {/* Morning Club Management */}
-            {page === "morning" && (
-              <>
-                <div className="page-title">Morning Club Management</div>
+            {page === "morning" && <MorningClubManagement />}
 
-                <div className="controls">
-                  <div className="filter-box">
-                    <strong>Filter by:</strong>
-                    <label>Category:</label>
-                    <select>
-                      <option>-- Select --</option>
-                      <option>STEM</option>
-                      <option>Humanities</option>
-                      <option>Art</option>
-                      <option>Other</option>
-                    </select>
-
-                    <label>Status:</label>
-                    <select>
-                      <option>-- Select --</option>
-                      <option>Approved</option>
-                      <option>Pending</option>
-                      <option>Rejected</option>
-                    </select>
-
-                    <br /><br />
-                    <button>Clear</button>
-                    <button>Submit</button>
-                  </div>
-
-                  <div className="tools">
-                    <strong>Other Tools:</strong><br />
-                    <select>
-                      <option>-- Select --</option>
-                      <option>STEM</option>
-                      <option>Humanities</option>
-                      <option>Art</option>
-                      <option>Other</option>
-                    </select><br />
-                    <select
-                      onChange={(e) => {
-                        if (e.target.value === "ai-merge") {
-                          setPage("morning-ai-merge");
-                        }
-                      }}
-                    >
-                      <option value="">-- Select --</option>
-                      <option value="add">Add Club</option>
-                      <option value="ai-merge">AI Merge</option>
-                      <option value="teacher">Add Teacher</option>
-                      <option value="archive">Archive Clubs</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="status-update">
-                  Update selected <strong>STATUS</strong> TO:
-                  <select>
-                    <option>-- Select --</option>
-                    <option>Approved</option>
-                    <option>Pending</option>
-                    <option>Rejected</option>
-                  </select>
-                  <button>Submit</button>
-                </div>
-
-                <table>
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>Club</th>
-                      <th>Leader Email</th>
-                      <th>Category</th>
-                      <th>Advisor</th>
-                      <th>Meeting Place</th>
-                      <th>Day</th>
-                      <th>Time</th>
-                      <th>5 members</th>
-                      <th>Status</th>
-                      <th>View/Edit</th>
-                      <th>Merge?</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      {
-                        club: "Baking Club",
-                        email: "anygup26@bergen.org",
-                        category: "Other",
-                        advisor: "Dr. Carter",
-                        place: "Room 138A",
-                        day: "Thursday",
-                        time: "7:30",
-                        members: "Yes",
-                        status: "Pending",
-                      },
-                      {
-                        club: "Calculus Club",
-                        email: "stegeo26@bergen.org",
-                        category: "STEM",
-                        advisor: "Mr. Isecke",
-                        place: "Room 138B",
-                        day: "Monday",
-                        time: "7:30",
-                        members: "No",
-                        status: "Pending",
-                      },
-                      {
-                        club: "Creative Writing Club",
-                        email: "brofol@bergen.org",
-                        category: "Humanities",
-                        advisor: "Mr. Respass",
-                        place: "Room 136",
-                        day: "Tuesday",
-                        time: "7:35",
-                        members: "Yes",
-                        status: "Approved",
-                      },
-                    ].map((club, i) => (
-                      <tr key={i}>
-                        <td><div className="checkbox"></div></td>
-                        <td>{club.club}</td>
-                        <td>{club.email}</td>
-                        <td>{club.category}</td>
-                        <td>{club.advisor}</td>
-                        <td>{club.place}</td>
-                        <td>{club.day}</td>
-                        <td>{club.time}</td>
-                        <td>{club.members}</td>
-                        <td>{club.status}</td>
-                        <td><button>Edit</button></td>
-                        <td>No</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
             {page === "morning-ai-merge" && (
               <>
                 <div className="page-title">
