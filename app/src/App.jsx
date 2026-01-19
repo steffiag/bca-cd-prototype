@@ -204,7 +204,7 @@ const wednesdayClubs = [
         ===================== */}
         {portal === "admin" && (
           <>
-            {page === "morning" && <MorningClubManagement />}
+            {page === "morning" && ( <MorningClubManagement setPage={setPage} /> )}
 
             {page === "morning-ai-merge" && (
               <>

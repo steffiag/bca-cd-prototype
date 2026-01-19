@@ -52,14 +52,15 @@ app.get("/wednesday-club", async (req, res) => {
     const wednesday = responses.map((resp) => {
       const answers = resp.answers;
       const membersRaw = answers["1341f104"]?.textAnswers.answers[0].value || "";
-      const hasFiveMembers = membersRaw.trim().toLowerCase() === "n/a" ? "No" : "Yes";
+      const hasFiveMembers = membersRaw.trim().toLowerCase() !== "n/a";
       return {
         club: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
         email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
         category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
         advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
         room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
-        members: hasFiveMembers,              
+        members: hasFiveMembers ? "Yes" : "No",
+        membersRaw: membersRaw,                         
         req_advisor: (answers["3489c0db"]?.textAnswers.answers[0].value || "") + "?",         
         status: "Pending",
       };
@@ -80,7 +81,7 @@ app.get("/morning-club", async (req, res) => {
     const morning = responses.map((resp) => {
       const answers = resp.answers;
       const membersRaw = answers["1341f104"]?.textAnswers.answers[0].value || "";
-      const hasFiveMembers = membersRaw.trim().toLowerCase() === "n/a" ? "No" : "Yes";
+      const hasFiveMembers = membersRaw.trim().toLowerCase() !== "n/a";
       return {
         club: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
         email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
@@ -89,7 +90,8 @@ app.get("/morning-club", async (req, res) => {
         room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
         day: answers["33d1d5a4"]?.textAnswers.answers[0].value || "",
         time: answers["21c77a77"]?.textAnswers.answers[0].value || "",
-        members: hasFiveMembers,              
+        members: hasFiveMembers ? "Yes" : "No",
+        membersRaw: membersRaw,               
         req_advisor: (answers["3489c0db"]?.textAnswers.answers[0].value || "") + "?",         
         status: "Pending",
         merge: "No",

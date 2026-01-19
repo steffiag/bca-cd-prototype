@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
+import ClubModalContent from "./MorningClubModal";
 
-export default function MorningClubManagement() {
+export default function MorningClubManagement({ setPage }) {
   const [clubs, setClubs] = useState([]);
   const [filters, setFilters] = useState({
     category: "",
     status: "",
     advisor: "",
   });
+  const [selectedClub, setSelectedClub] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetch("http://localhost:4000/morning-club", { credentials: "include" })
@@ -71,16 +74,21 @@ export default function MorningClubManagement() {
         </div>
 
         <div className="tools">
-          <strong>Other Tools:</strong>
-          <br />
-          <select>
-            <option>-- Select --</option>
-            <option>Add Club</option>
-            <option>Archive Clubs</option>
-            <option>Add Teacher</option>
-            <option>Reset Availability</option>
-          </select>
-        </div>
+                    <strong>Other Tools:</strong><br />
+                    <select
+                      onChange={(e) => {
+                        if (e.target.value === "ai-merge") {
+                          setPage("morning-ai-merge");
+                        }
+                      }}
+                    >
+                      <option value="">-- Select --</option>
+                      <option value="add">Add Club</option>
+                      <option value="ai-merge">AI Merge</option>
+                      <option value="teacher">Add Teacher</option>
+                      <option value="archive">Archive Clubs</option>
+                    </select>
+                  </div>
       </div>
 
       <div className="status-update">
@@ -126,11 +134,47 @@ export default function MorningClubManagement() {
               <td>{club.members}</td>
               <td>{club.req_advisor}</td>
               <td>{club.status}</td>
-              <td><button>Edit</button></td>
+              <td><button onClick={() => { setSelectedClub(club); setIsModalOpen(true);}}> Edit </button></td>
               <td>{club.merge || "No"}</td>
             </tr>
           ))}
         </tbody>
+
+        {selectedClub && (
+        <ClubModalContent
+            club={selectedClub}
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSave={(updatedData) => {
+        setClubs((prev) =>
+            prev.map((c) =>
+            c.email === selectedClub.email
+                ? {
+                    ...c,
+                    club: updatedData.clubName,
+                    email: updatedData.email,
+                    category: updatedData.category,
+                    advisor: updatedData.advisor,
+                    room: updatedData.room,
+                    day: updatedData.day,
+                    time: updatedData.time,
+                    members:
+                    updatedData.members
+                        .split(",")
+                        .filter(Boolean).length >= 5
+                        ? "Yes"
+                        : "No",
+                    membersRaw: updatedData.members,
+                    status: updatedData.status,
+                    merge: updatedData.merge,
+                }
+                : c
+            )
+        );
+        }}
+
+        />
+        )}
       </table>
     </div>
   );

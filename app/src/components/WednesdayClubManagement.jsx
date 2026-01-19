@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import ClubModalContent from "./WednesdayClubModal";
 
 export default function WednesdayClubManagement() {
   const [clubs, setClubs] = useState([]);
@@ -7,6 +8,8 @@ export default function WednesdayClubManagement() {
     status: "",
     advisor: "",
   });
+  const [selectedClub, setSelectedClub] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetch("http://localhost:4000/wednesday-club", {
@@ -145,12 +148,43 @@ export default function WednesdayClubManagement() {
               <td>{club.members}</td>
               <td>{club.req_advisor}</td>
               <td>{club.status}</td>
-              <td>
-                <button>Edit</button>
-              </td>
+              <td><button onClick={() => { setSelectedClub(club); setIsModalOpen(true);}}> Edit </button></td>
             </tr>
           ))}
         </tbody>
+
+        {selectedClub && (
+        <ClubModalContent
+            club={selectedClub}
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSave={(updatedData) => {
+            setClubs((prev) =>
+                prev.map((c) =>
+                c.email === selectedClub.email
+                    ? {
+                        ...c,
+                        club: updatedData.clubName,
+                        email: updatedData.email,
+                        category: updatedData.category,
+                        advisor: updatedData.advisor,
+                        room: updatedData.room,
+                        members:
+                        updatedData.members
+                            .split(",")
+                            .filter(Boolean).length >= 5
+                            ? "Yes"
+                            : "No",
+                        membersRaw: updatedData.members,
+
+                        status: updatedData.status,
+                    }
+                    : c
+                )
+            );
+            }}
+        />
+        )}
       </table>
     </div>
   );
