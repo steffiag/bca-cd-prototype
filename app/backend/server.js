@@ -105,6 +105,27 @@ app.get("/morning-club", async (req, res) => {
 });
 
 
+app.get("/ai-merges", async (req, res) => {
+  try {
+    const responses = await getFormResponses(
+      "1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM"
+    );
+    console.log(JSON.stringify(responses, null, 2));
+    const merge = responses.map((resp) => {
+      const answers = resp.answers;
+      return {
+        club: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
+        mission: answers["76676db8"]?.textAnswers.answers[0].value || "",
+      };
+    });
+    res.json(merge);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch club proposals", });
+  }
+});
+
+
 db.sequelize
   .sync()
   .then(() => {
