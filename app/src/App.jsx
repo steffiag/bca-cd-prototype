@@ -11,6 +11,8 @@ function App() {
   const [portal, setPortal] = useState(null); 
   const [page, setPage] = useState("morning"); 
   const [teacherAvailability, setTeacherAvailability] = useState([]);
+  const [aiMerges, setAiMerges] = useState([]);
+
 
   useEffect(() => {
     fetch("http://localhost:4000/auth/user", { credentials: "include" })
@@ -27,6 +29,24 @@ function App() {
     .then((data) => setTeacherAvailability(data))
     .catch((err) => console.error(err));
 }, []);
+
+  useEffect(() => {
+    if (page === "morning-ai-merge") {
+      fetch("http://localhost:4000/ai-merges")
+        .then(res => res.json())
+        .then(async (clubs) => {
+          const response = await fetch("http://localhost:4000/assess-similarity", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(clubs)
+          });
+          const suggestions = await response.json();
+          setAiMerges(suggestions);
+        })
+        .catch(err => console.error(err));
+    }
+  }, [page]);
+
 
   const morningClubs = [ 
   {
@@ -238,96 +258,64 @@ const wednesdayClubs = [
                   </div>
                 </div>
 
-                {[
-                  {
-                    reason:
-                      "These clubs focus on hands-on STEM problem solving and competitive math-based challenges.",
-                    clubs: [
-                      { name: "Calculus Club", members: 8 },
-                      { name: "Math Competition Club", members: 6 },
-                      { name: "Problem Solvers Club", members: 5 },
-                    ],
-                  },
-                  {
-                    reason:
-                      "These clubs center around creative writing, storytelling, and literary discussion.",
-                    clubs: [
-                      { name: "Creative Writing Club", members: 7 },
-                      { name: "Poetry Club", members: 4 },
-                    ],
-                  },
-                  {
-                    reason:
-                      "These clubs emphasize culinary creativity and baking fundamentals.",
-                    clubs: [
-                      { name: "Baking Club", members: 5 },
-                      { name: "Cooking Club", members: 9 },
-                    ],
-                  },
-                ].map((group, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      background: "#e7f0fb",
-                      borderRadius: "12px",
-                      padding: "20px",
-                      marginBottom: "25px",
-                      boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontWeight: "600",
-                        marginBottom: "15px",
-                        color: "#1e3a5f",
-                      }}
-                    >
-                      AI Reason for grouping:
-                      <div style={{ fontWeight: "400", marginTop: "6px" }}>
-                        {group.reason}
-                      </div>
-                    </div>
+  {aiMerges.length > 0 ? (
+    aiMerges.map((group, i) => (
+      <div
+        key={i}
+        style={{
+          background: "#e7f0fb",
+          borderRadius: "12px",
+          padding: "20px",
+          marginBottom: "25px",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+        }}
+      >
+        <div style={{ fontWeight: "600", marginBottom: "15px", color: "#1e3a5f" }}>
+          AI Suggested Merge:
+        </div>
 
-                    {group.clubs.map((club, idx) => (
-                      <div
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        alignItems: "center", // 
-                        justifyContent: "space-between",
-                        background: "#ffffff",
-                        padding: "12px 16px",
-                        borderRadius: "8px",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                        <button
-                          style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "6px",
-                            border: "none",
-                            color: "white",
-                            fontSize: "16px",
-                            cursor: "pointer",
-                            display: "flex",          
-                            alignItems: "center",   
-                            justifyContent: "center", 
-                          }}
-                          title="Remove from merge group"
-                        >
-                          🗑️
-                        </button>
-                        <strong>{club.name}</strong>
-                      </div>
+        {[{name: group.clubA, email: group.emailA}, {name: group.clubB, email: group.emailB}].map((club, idx) => (
+          <div
+            key={idx}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              background: "#ffffff",
+              padding: "12px 16px",
+              borderRadius: "8px",
+              marginBottom: "10px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <button
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "6px",
+                  border: "none",
+                  color: "white",
+                  fontSize: "16px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                title="Remove from merge group"
+              >
+                🗑️
+              </button>
+              <strong>{club.name}</strong>
+            </div>
+            <span>{club.email}</span>
+          </div>
+        ))}
+      </div>
+    ))
+  ) : (
+    <p style={{ textAlign: "center", color: "#666" }}>No AI merge suggestions yet.</p>
+  )}
 
-                      <span className="pill">Members: {club.members}</span>
-                    </div>
-
-                    ))}
-                  </div>
-                ))}
               </>
             )}
 

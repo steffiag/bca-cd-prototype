@@ -4,6 +4,22 @@ import dotenv from "dotenv";
 import setupAuth from "./auth.js";
 import db from "./models/index.js";
 import { getFormResponses } from "./google-forms.js";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: "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",
+});
+
+
+
+//calculates similarity
+function cosineSimilarity(a, b) {
+  const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
+  const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+  const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+  return dot / (magA * magB);
+}
+
 
 dotenv.config();
 
@@ -126,6 +142,37 @@ app.get("/ai-merges", async (req, res) => {
 });
 
 
+app.get("/openai-test", async (req, res) => {
+  try {
+    console.log("🔵 OpenAI test endpoint hit");
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "user", content: "Reply with exactly the word CONNECTED." }
+      ],
+      temperature: 0,
+    });
+
+    const reply = completion.choices[0].message.content;
+
+    console.log("🟢 OpenAI replied:", reply);
+
+    res.json({
+      success: true,
+      reply,
+    });
+  } catch (err) {
+    console.error("🔴 OpenAI test failed:", err);
+    res.status(500).json({
+      success: false,
+      error: err.message,
+    });
+  }
+});
+
+
+
 db.sequelize
   .sync()
   .then(() => {
@@ -135,3 +182,49 @@ db.sequelize
     );
   })
   .catch(console.error);
+
+//ai merge suggestions
+app.post("/assess-similarity", async (req, res) => {
+  try {
+    const morningClubs = req.body;
+    console.log("Incoming clubs for AI similarity:", req.body);
+
+    
+    const texts = morningClubs.map(c => `${c.club}: ${c.mission}`);
+    console.log("Texts sent to OpenAI:", texts);
+    const response = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: texts,
+    });
+
+    const embeddings = response.data.map(d => d.embedding);
+    const suggestions = [];
+
+    //compares each pair of clubs
+    for (let i = 0; i < morningClubs.length; i++) {
+      for (let j = i + 1; j < morningClubs.length; j++) {
+        const score = cosineSimilarity(embeddings[i], embeddings[j]);
+        console.log(`Comparing "${morningClubs[i].club}" and "${morningClubs[j].club}" => similarity: ${score}`);
+        if (score > 0.7) {
+          suggestions.push({
+            clubA: morningClubs[i].club,
+            emailA: morningClubs[i].email,
+            clubB: morningClubs[j].club,
+            emailB: morningClubs[j].email,
+            suggestion: "Merge suggested",
+          });
+        }
+      }
+    }
+
+    if (suggestions.length === 0) {
+      return res.json({ message: "No clubs suggested for merge" });
+    }
+
+    res.json(suggestions);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Similarity check failed" });
+  }
+});
