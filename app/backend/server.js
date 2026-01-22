@@ -7,7 +7,7 @@ import { getFormResponses } from "./google-forms.js";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: "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",
+  apiKey: OPENAI_API_KEY,
 });
 
 
