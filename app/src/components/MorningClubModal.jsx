@@ -73,6 +73,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
         justifyContent: "center",
         zIndex: 1000,
         padding: "20px",
+        overflow: "auto", // ADD THIS
       }}
       onClick={onClose}
     >
@@ -83,13 +84,16 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
           borderRadius: "20px",
           width: "500px",
           maxWidth: "95vw",
+          maxHeight: "90vh", // ADD THIS
+          overflowY: "auto", // ADD THIS
           color: "#1e3a5f",
           boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+          margin: "auto", // ADD THIS
         }}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 style={{ color: "#4672a1", marginBottom: "20px", textAlign: "center" }}>
-          Edit Club Info
+          {club.isNew ? "Add New Club" : "Edit Club Info"}
         </h2>
 
         <div style={fieldStyle}>
@@ -170,6 +174,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
               background: "#9e9e9e",
               color: "white",
               padding: "8px 16px",
+              border: "none",
               borderRadius: "8px",
               fontWeight: 600,
               cursor: "pointer",
@@ -183,6 +188,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
               background: "#5a8fc0",
               color: "white",
               padding: "8px 16px",
+              border: "none",
               borderRadius: "8px",
               fontWeight: 600,
               cursor: "pointer",

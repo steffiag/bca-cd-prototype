@@ -45,17 +45,26 @@ export default function setupAuth(app) {
   );
 
   app.get("/auth/user", async (req, res) => {
+  try {
     if (!req.user) return res.json(null);
 
     const email = req.user.emails[0].value;
-    const dbUser = await db.User.findOne({ where: { email } });
+    console.log("Looking up user with email:", email); // Debug log
+    
+    const dbUser = await db.User.findOne({ where: { usr_email: email } });
+    console.log("Found user:", dbUser); // Debug log
 
     res.json({
       displayName: req.user.displayName,
       email,
-      role: dbUser?.role || "student",
+      userType: dbUser?.usr_type_cde || "STD",
+      isTeacher: dbUser?.usr_type_cde === "TCH",
     });
-  });
+  } catch (error) {
+    console.error("Error in /auth/user:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
   
   app.get("/auth/logout", (req, res) => {
     req.logout(() => {
