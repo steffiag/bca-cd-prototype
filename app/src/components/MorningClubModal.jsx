@@ -73,7 +73,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
         justifyContent: "center",
         zIndex: 1000,
         padding: "20px",
-        overflow: "auto", // ADD THIS
+        overflow: "auto",
       }}
       onClick={onClose}
     >
@@ -84,11 +84,11 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
           borderRadius: "20px",
           width: "500px",
           maxWidth: "95vw",
-          maxHeight: "90vh", // ADD THIS
-          overflowY: "auto", // ADD THIS
+          maxHeight: "90vh",
+          overflowY: "auto",
           color: "#1e3a5f",
           boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-          margin: "auto", // ADD THIS
+          margin: "auto",
         }}
         onClick={(e) => e.stopPropagation()}
       >
