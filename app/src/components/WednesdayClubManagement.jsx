@@ -10,6 +10,8 @@ export default function WednesdayClubManagement({ user }) {
   });
   const [selectedClub, setSelectedClub] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedClubs, setSelectedClubs] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState("");
 
   // Check if user is a teacher
   const isTeacher = user?.isTeacher || false;
@@ -104,6 +106,37 @@ export default function WednesdayClubManagement({ user }) {
       alert("Error deleting club");
     }
   };
+  const toggleClubSelection = (clubId) => {
+  setSelectedClubs((prev) =>
+    prev.includes(clubId)
+      ? prev.filter((id) => id !== clubId)
+      : [...prev, clubId]
+  );
+};
+
+const handleBulkStatusUpdate = () => {
+    setClubs((prev) =>
+      prev.map((club) =>
+        selectedClubs.includes(club.id)
+          ? { ...club, status: bulkStatus }
+          : club
+      )
+    );
+
+    fetch("http://localhost:4000/clubs/bulk-status", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        ids: selectedClubs,
+        status: bulkStatus,
+      }),
+    }).catch(console.error);
+
+    setSelectedClubs([]);
+    setBulkStatus("");
+  };
+
 
   return (
     <div>
@@ -131,15 +164,22 @@ export default function WednesdayClubManagement({ user }) {
 
           <label>Status:</label>
           <select
-            name="status"
-            value={filters.status}
-            onChange={handleFilterChange}
+          name="status"
+          value={filters.status}
+          onChange={handleFilterChange}
+        >
+          <option value="">-- Select --</option>
+          <option>Approved</option>
+          <option>Pending</option>
+          <option>Rejected</option>
+        </select>
+
+          <button
+            disabled={selectedClubs.length === 0 || !bulkStatus}
+            onClick={handleBulkStatusUpdate}
           >
-            <option value="">-- Select --</option>
-            <option>Approved</option>
-            <option>Pending</option>
-            <option>Rejected</option>
-          </select>
+            Submit
+          </button>
 
           <label>Advisor:</label>
           <select
@@ -203,19 +243,41 @@ export default function WednesdayClubManagement({ user }) {
 
       <div className="status-update">
         Update selected <strong>STATUS</strong> TO:
-        <select>
-          <option>-- Select --</option>
+        <select
+          value={bulkStatus}
+          onChange={(e) => setBulkStatus(e.target.value)}
+        >
+          <option value="">-- Select --</option>
           <option>Approved</option>
           <option>Pending</option>
           <option>Rejected</option>
         </select>
-        <button>Submit</button>
+
+        <button
+          disabled={selectedClubs.length === 0 || !bulkStatus}
+          onClick={handleBulkStatusUpdate}
+        >
+          Submit
+        </button>
       </div>
 
       <table>
         <thead>
           <tr>
-            <th></th>
+            <th>
+            <input
+              type="checkbox"
+              checked={filteredClubs.length > 0 && filteredClubs.every((c) => selectedClubs.includes(c.id))}
+              onChange={() => {
+                const allIds = filteredClubs.map((c) => c.id);
+                if (filteredClubs.every((c) => selectedClubs.includes(c.id))) {
+                  setSelectedClubs([]);
+                } else {
+                  setSelectedClubs(allIds);
+                }
+              }}
+            />
+          </th>
             <th>Club</th>
             <th>Leader Email</th>
             <th>Category</th>
@@ -230,8 +292,14 @@ export default function WednesdayClubManagement({ user }) {
         </thead>
         <tbody>
           {filteredClubs.map((club, i) => (
-            <tr key={i}>
-              <td><div className="checkbox"></div></td>
+            <tr key={club.id}>
+              <td>
+            <input
+              type="checkbox"
+              checked={selectedClubs.includes(club.id)}
+              onChange={() => toggleClubSelection(club.id)}
+            />
+          </td>
               <td>{club.club}</td>
               <td>{club.email}</td>
               <td>{club.category}</td>

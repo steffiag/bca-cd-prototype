@@ -7,7 +7,7 @@ import { getFormResponses } from "./google-forms.js";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 
@@ -105,6 +105,7 @@ app.get("/wednesday-club", async (req, res) => {
       const membersRaw = answers["1341f104"]?.textAnswers.answers[0].value || "";
       const hasFiveMembers = membersRaw.trim().toLowerCase() !== "n/a";
       return {
+        id: resp.responseId,
         club: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
         email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
         category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
@@ -214,6 +215,7 @@ app.get("/morning-club", async (req, res) => {
       const membersRaw = answers["1341f104"]?.textAnswers.answers[0].value || "";
       const hasFiveMembers = membersRaw.trim().toLowerCase() !== "n/a";
       return {
+        id: resp.responseId,
         club: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
         email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
         category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
