@@ -10,8 +10,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-
-
 //calculates similarity
 function cosineSimilarity(a, b) {
   const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
@@ -20,11 +18,10 @@ function cosineSimilarity(a, b) {
   return dot / (magA * magB);
 }
 
-
 dotenv.config();
 
 console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
-console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET); // testing if form.credentials.json is working
+console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
 
 const app = express();
 const PORT = 4000;
@@ -38,22 +35,57 @@ app.get("/", (req, res) => {
   res.send("BCA Club Dashboard backend is running!");
 });
 
+// ============================================
+// TEACHER AVAILABILITY ENDPOINTS
+// ============================================
 
+// Sync teachers from Google Forms
+async function syncTeachers() {
+  const responses = await getFormResponses("1E9oTtJjWJhoCKBT69Vx_nEj664jMfQn0cvgWQoF4vyY");
+  
+  for (const resp of responses) {
+    const responseId = resp.responseId;
+    const exists = await db.Teacher.findOne({ where: { form_response_id: responseId } });
+    if (exists) continue;
+
+    const answers = resp.answers;
+    await db.Teacher.create({
+      form_response_id: responseId,
+      name: answers["2f647977"]?.textAnswers.answers[0].value || "",
+      email: answers["53dcbc10"]?.textAnswers.answers[0].value || "",
+      room: answers["38b6b35f"]?.textAnswers.answers[0].value || "",
+      available: answers["0f394b75"]?.textAnswers.answers[0].value === "Yes",
+      department: answers["66644a8c"]?.textAnswers.answers[0].value || "",
+      assigned_club: answers["3819750e"]?.textAnswers.answers[0].value || null,
+      source: "google_form",
+    });
+  }
+}
+
+// GET all teachers
 app.get("/teacher-availability", async (req, res) => {
   try {
-    const responses = await getFormResponses("1E9oTtJjWJhoCKBT69Vx_nEj664jMfQn0cvgWQoF4vyY");
-    console.log(JSON.stringify(responses, null, 2));
-    const teachers = responses.map((resp) => {
-      const answers = resp.answers;
-      return {
-        name: answers["2f647977"]?.textAnswers.answers[0].value || "",
-        email: answers["53dcbc10"]?.textAnswers.answers[0].value || "",
-        room: answers["38b6b35f"]?.textAnswers.answers[0].value || "",
-        available: answers["0f394b75"]?.textAnswers.answers[0].value || "No",
-        department: answers["66644a8c"]?.textAnswers.answers[0].value || "",
-        assigned: answers["3819750e"]?.textAnswers.answers[0].value || "",
-      };
+    await syncTeachers();
+
+    const dbTeachers = await db.Teacher.findAll();
+
+    // Get all approved clubs for the dropdown
+    const wednesdayClubs = await db.WednesdayClub.findAll({
+      where: { status: "Approved" },
     });
+
+    const teachers = dbTeachers.map((teacher) => ({
+      id: teacher.id,
+      name: teacher.name,
+      email: teacher.email,
+      room: teacher.room,
+      available: teacher.available ? "Yes" : "No",
+      availableBool: teacher.available,
+      department: teacher.department,
+      assigned: teacher.assigned_club,
+      source: teacher.source,
+      availableClubs: wednesdayClubs.map((c) => c.club_name),
+    }));
 
     res.json(teachers);
   } catch (err) {
@@ -62,7 +94,105 @@ app.get("/teacher-availability", async (req, res) => {
   }
 });
 
-// DELETE endpoint - add this BEFORE the GET endpoint
+// POST new teacher (manual entry)
+app.post("/teacher-availability", async (req, res) => {
+  try {
+    const { name, email, room, available, department, assigned_club } = req.body;
+    
+    const newTeacher = await db.Teacher.create({
+      name,
+      email,
+      room,
+      available: available === "Yes" || available === true,
+      department,
+      assigned_club: assigned_club || null,
+      source: "manual",
+    });
+
+    res.json({ success: true, teacher: newTeacher });
+  } catch (err) {
+    console.error("Error creating teacher:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT update teacher
+app.put("/teacher-availability/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, room, available, department, assigned_club } = req.body;
+
+    const teacher = await db.Teacher.findByPk(id);
+    if (!teacher) {
+      return res.status(404).json({ error: "Teacher not found" });
+    }
+
+    await teacher.update({
+      name,
+      email,
+      room,
+      available: available === "Yes" || available === true,
+      department,
+      assigned_club: assigned_club || null,
+    });
+
+    res.json({ success: true, teacher });
+  } catch (err) {
+    console.error("Error updating teacher:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT update teacher availability (for teachers confirming themselves)
+app.put("/teacher-availability/:id/confirm", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { available } = req.body;
+
+    const teacher = await db.Teacher.findByPk(id);
+    if (!teacher) {
+      return res.status(404).json({ error: "Teacher not found" });
+    }
+
+    await teacher.update({
+      available: available === true || available === "Yes",
+    });
+
+    res.json({ success: true, teacher });
+  } catch (err) {
+    console.error("Error confirming availability:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE teacher
+app.delete("/teacher-availability/:id/:source", async (req, res) => {
+  try {
+    const { id, source } = req.params;
+    
+    if (source === "google_form") {
+      return res.status(400).json({ 
+        error: "Cannot delete teachers from Google Forms. These must be managed through Google Forms." 
+      });
+    }
+
+    const deleted = await db.Teacher.destroy({ where: { id: parseInt(id) } });
+
+    if (deleted) {
+      res.json({ success: true, message: "Teacher deleted" });
+    } else {
+      res.status(404).json({ error: "Teacher not found" });
+    }
+  } catch (err) {
+    console.error("Error deleting teacher:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// EXISTING ENDPOINTS (Wednesday Clubs, etc.)
+// ============================================
+
 app.delete("/wednesday-club/:identifier/:source", async (req, res) => {
   try {
     const { identifier, source } = req.params;
@@ -144,8 +274,6 @@ app.get("/wednesday-club", async (req, res) => {
   }
 });
 
-
-// POST endpoint
 app.post("/wednesday-club", async (req, res) => {
   try {
     const { club, email, category, advisor, room, members, status } = req.body;
@@ -183,7 +311,6 @@ app.delete("/morning-club/:identifier/:source", async (req, res) => {
 
     console.log("Attempting to delete club with identifier:", identifier);
     
-    // Try to delete by ID first (if identifier is a number), otherwise by email
     const whereClause = isNaN(identifier) 
       ? { leader_email: identifier }
       : { id: parseInt(identifier) };
@@ -232,7 +359,6 @@ app.get("/morning-club", async (req, res) => {
   }
 });
 
-
 app.post("/morning-club", async (req, res) => {
   try {
     const { club, email, category, advisor, room, day, time, members, status, merge } = req.body;
@@ -259,9 +385,6 @@ app.post("/morning-club", async (req, res) => {
   }
 });
 
-
-
-
 app.get("/ai-merges", async (req, res) => {
   try {
     const responses = await getFormResponses(
@@ -281,7 +404,6 @@ app.get("/ai-merges", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch club proposals", });
   }
 });
-
 
 app.get("/openai-test", async (req, res) => {
   try {
@@ -410,23 +532,11 @@ app.put("/wednesday-club/:id", async (req, res) => {
   }
 });
 
-db.sequelize
-  .sync()
-  .then(() => {
-    console.log("Sequelize synced");
-    app.listen(PORT, () =>
-      console.log(`Server running on http://localhost:${PORT}`)
-    );
-  })
-  .catch(console.error);
-
-//ai merge suggestions
 app.post("/assess-similarity", async (req, res) => {
   try {
     const morningClubs = req.body;
     console.log("Incoming clubs for AI similarity:", req.body);
 
-    
     const texts = morningClubs.map(c => `${c.club}: ${c.mission}`);
     console.log("Texts sent to OpenAI:", texts);
     const response = await openai.embeddings.create({
@@ -437,7 +547,6 @@ app.post("/assess-similarity", async (req, res) => {
     const embeddings = response.data.map(d => d.embedding);
     const suggestions = [];
 
-    //compares each pair of clubs
     for (let i = 0; i < morningClubs.length; i++) {
       for (let j = i + 1; j < morningClubs.length; j++) {
         const score = cosineSimilarity(embeddings[i], embeddings[j]);
@@ -464,7 +573,14 @@ app.post("/assess-similarity", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Similarity check failed" });
   }
-}
+});
 
-
-);
+db.sequelize
+  .sync()
+  .then(() => {
+    console.log("Sequelize synced");
+    app.listen(PORT, () =>
+      console.log(`Server running on http://localhost:${PORT}`)
+    );
+  })
+  .catch(console.error);

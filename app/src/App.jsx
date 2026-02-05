@@ -24,11 +24,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-  fetch("http://localhost:4000/teacher-availability", { credentials: "include" })
-    .then((res) => res.json())
-    .then((data) => setTeacherAvailability(data))
-    .catch((err) => console.error(err));
-}, []);
+    fetch("http://localhost:4000/teacher-availability", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setTeacherAvailability(data))
+      .catch((err) => console.error(err));
+  }, []);
 
   useEffect(() => {
     if (page === "morning-ai-merge") {
@@ -49,142 +49,142 @@ function App() {
 
 
   const morningClubs = [ 
-  {
-    name: "Robotics Club",
-    mission: "Build, program, and compete with robots.",
-    members: 18,
-    image: "/images/robotics.jpg",
-  },
-  {
-    name: "Creative Writing",
-    mission: "Explore storytelling, poetry, and prose.",
-    members: 12,
-    image: "/images/creative-writing.jpg",
-  },
-  {
-    name: "Chess Club",
-    mission: "Compete with others in a supportive environment",
-    members: 6,
-    image: "/images/chess.jpg",
-  },
-];
+    {
+      name: "Robotics Club",
+      mission: "Build, program, and compete with robots.",
+      members: 18,
+      image: "/images/robotics.jpg",
+    },
+    {
+      name: "Creative Writing",
+      mission: "Explore storytelling, poetry, and prose.",
+      members: 12,
+      image: "/images/creative-writing.jpg",
+    },
+    {
+      name: "Chess Club",
+      mission: "Compete with others in a supportive environment",
+      members: 6,
+      image: "/images/chess.jpg",
+    },
+  ];
 
-const wednesdayClubs = [
-  {
-    name: "Drama Club",
-    mission: "Acting, directing, and stage performance.",
-    members: 15,
-    image: "/images/drama.jpg",
-  },
-  {
-    name: "Art Club",
-    mission: "Drawing, painting, and creative expression.",
-    members: 10,
-    image: "/images/art.jpeg",
-  },
-];
+  const wednesdayClubs = [
+    {
+      name: "Drama Club",
+      mission: "Acting, directing, and stage performance.",
+      members: 15,
+      image: "/images/drama.jpg",
+    },
+    {
+      name: "Art Club",
+      mission: "Drawing, painting, and creative expression.",
+      members: 10,
+      image: "/images/art.jpeg",
+    },
+  ];
 
 
   // =====================
   // LOGIN PAGE
   // =====================
   if (!user) {
-  return (
-    <div className="page">
-      <div className="card-ui">
-        <h1>BCA Club Dashboard</h1>
-        <p className="subtitle">Sign in with your school account</p>
+    return (
+      <div className="page">
+        <div className="card-ui">
+          <h1>BCA Club Dashboard</h1>
+          <p className="subtitle">Sign in with your school account</p>
 
-        <button
-          onClick={() =>
-            (window.location.href = "http://localhost:4000/auth/google")
-          }
-        >
-          Login with Google
-        </button>
+          <button
+            onClick={() =>
+              (window.location.href = "http://localhost:4000/auth/google")
+            }
+          >
+            Login with Google
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   // =====================
   // PORTAL PAGE (AFTER LOGIN)
   // =====================
   return (
     <div className="container">
-    <div className="sidebar">
-      {portal === "admin" && (
-        <>
-          <a
-            href="#"
-            onClick={() => setPage("morning")}
-            className={page.startsWith("morning") ? "active" : ""}
-          >
-            Morning Club Management
-          </a>
-          <a
-            href="#"
-            onClick={() => setPage("wednesday")}
-            className={page === "wednesday" ? "active" : ""}
-          >
-            Wednesday Club Management
-          </a>
-          <a
-            href="#"
-            onClick={() => setPage("teacher")}
-            className={page === "teacher" ? "active" : ""}
-          >
-            Teacher Availability
-          </a>
-        </>
-      )}
+      <div className="sidebar">
+        {portal === "admin" && (
+          <>
+            <a
+              href="#"
+              onClick={() => setPage("morning")}
+              className={page.startsWith("morning") ? "active" : ""}
+            >
+              Morning Club Management
+            </a>
+            <a
+              href="#"
+              onClick={() => setPage("wednesday")}
+              className={page === "wednesday" ? "active" : ""}
+            >
+              Wednesday Club Management
+            </a>
+            <a
+              href="#"
+              onClick={() => setPage("teacher")}
+              className={page === "teacher" ? "active" : ""}
+            >
+              Teacher Availability
+            </a>
+          </>
+        )}
 
-      {portal === "student" && (
-        <>
-          <a
-            href="#"
-            onClick={() => setPage("morning")}
-            className={page === "morning" ? "active" : ""}
-          >
-            Morning Clubs
-          </a>
-          <a
-            href="#"
-            onClick={() => setPage("wednesday")}
-            className={page === "wednesday" ? "active" : ""}
-          >
-            Wednesday Clubs
-          </a>
-        </>
-      )}
-    </div>
+        {portal === "student" && (
+          <>
+            <a
+              href="#"
+              onClick={() => setPage("morning")}
+              className={page === "morning" ? "active" : ""}
+            >
+              Morning Clubs
+            </a>
+            <a
+              href="#"
+              onClick={() => setPage("wednesday")}
+              className={page === "wednesday" ? "active" : ""}
+            >
+              Wednesday Clubs
+            </a>
+          </>
+        )}
+      </div>
 
 
       {/* Main content */}
       <div className="main">
         {user && (
-  <div style={{ position: "fixed", top: 20, right: 20, zIndex: 1000 }}>
-    <button
-      onClick={() => {
-        fetch("http://localhost:4000/auth/logout", { credentials: "include" })
-          .then(() => setUser(null))
-          .catch((err) => console.error(err));
-      }}
-      style={{
-        background: "#4a90e2",
-        color: "white",
-        border: "none",
-        padding: "6px 12px",
-        borderRadius: "6px",
-        cursor: "pointer",
-      }}
-    >
-      Logout
-    </button>
-  </div>
-)} 
+          <div style={{ position: "fixed", top: 20, right: 20, zIndex: 1000 }}>
+            <button
+              onClick={() => {
+                fetch("http://localhost:4000/auth/logout", { credentials: "include" })
+                  .then(() => setUser(null))
+                  .catch((err) => console.error(err));
+              }}
+              style={{
+                background: "#4a90e2",
+                color: "white",
+                border: "none",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                cursor: "pointer",
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        )} 
 
-      <div className="portal-title">{portal === "admin" ? "Admin Portal" : "Student Portal"}</div>
+        <div className="portal-title">{portal === "admin" ? "Admin Portal" : "Student Portal"}</div>
         {/* Portal Toggle Buttons */}
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
           <button
@@ -202,10 +202,10 @@ const wednesdayClubs = [
             Admin Portal
           </button>
           <button
-            onClick={() => {setPortal("student");
+            onClick={() => {
+              setPortal("student");
               setPage("morning");
             }}
-
             style={{
               background: portal === "student" ? "#4a90e2" : "#9e9e9e",
               color: "white",
@@ -258,71 +258,70 @@ const wednesdayClubs = [
                   </div>
                 </div>
 
-  {aiMerges.length > 0 ? (
-    aiMerges.map((group, i) => (
-      <div
-        key={i}
-        style={{
-          background: "#e7f0fb",
-          borderRadius: "12px",
-          padding: "20px",
-          marginBottom: "25px",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
-        }}
-      >
-        <div style={{ fontWeight: "600", marginBottom: "15px", color: "#1e3a5f" }}>
-          AI Suggested Merge:
-        </div>
+                {aiMerges.length > 0 ? (
+                  aiMerges.map((group, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        background: "#e7f0fb",
+                        borderRadius: "12px",
+                        padding: "20px",
+                        marginBottom: "25px",
+                        boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+                      }}
+                    >
+                      <div style={{ fontWeight: "600", marginBottom: "15px", color: "#1e3a5f" }}>
+                        AI Suggested Merge:
+                      </div>
 
-        {[{name: group.clubA, email: group.emailA}, {name: group.clubB, email: group.emailB}].map((club, idx) => (
-          <div
-            key={idx}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              background: "#ffffff",
-              padding: "12px 16px",
-              borderRadius: "8px",
-              marginBottom: "10px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <button
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "6px",
-                  border: "none",
-                  color: "white",
-                  fontSize: "16px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                title="Remove from merge group"
-              >
-                🗑️
-              </button>
-              <strong>{club.name}</strong>
-            </div>
-            <span>{club.email}</span>
-          </div>
-        ))}
-      </div>
-    ))
-  ) : (
-    <p style={{ textAlign: "center", color: "#666" }}>No AI merge suggestions yet.</p>
-  )}
-
+                      {[{name: group.clubA, email: group.emailA}, {name: group.clubB, email: group.emailB}].map((club, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            background: "#ffffff",
+                            padding: "12px 16px",
+                            borderRadius: "8px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                            <button
+                              style={{
+                                width: "32px",
+                                height: "32px",
+                                borderRadius: "6px",
+                                border: "none",
+                                color: "white",
+                                fontSize: "16px",
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                              title="Remove from merge group"
+                            >
+                              🗑️
+                            </button>
+                            <strong>{club.name}</strong>
+                          </div>
+                          <span>{club.email}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ textAlign: "center", color: "#666" }}>No AI merge suggestions yet.</p>
+                )}
               </>
             )}
 
             {/* Wednesday Club Management */}
             {page === "wednesday" && <WednesdayClubManagement user={user} />}
-            {/* Teacher Availability */}
-            {page === "teacher" && <TeacherAvailability teachers={teacherAvailability} />}
+            {/* Teacher Availability - NOW WITH USER PROP */}
+            {page === "teacher" && <TeacherAvailability user={user} />}
           </>
         )}
         {portal === "student" && (

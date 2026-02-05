@@ -2,7 +2,8 @@ import { Sequelize } from "sequelize";
 import UserModel from "./User.js";
 import ProposedClubModel from "./ProposedClub.js";
 import MorningClubModel from "./MorningClub.js";
-import WednesdayClubModel from "./WednesdayClub.js"; 
+import WednesdayClubModel from "./WednesdayClub.js";
+import TeacherModel from "./Teacher.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -18,19 +19,21 @@ export const sequelize = new Sequelize(
   }
 );
 
-// Initialize models
+
 const User = UserModel(sequelize);
 const ProposedClub = ProposedClubModel(sequelize);
 const MorningClub = MorningClubModel(sequelize);
-const WednesdayClub = WednesdayClubModel(sequelize); // ADD THIS
+const WednesdayClub = WednesdayClubModel(sequelize);
+const Teacher = TeacherModel(sequelize);
 
-// Export them
-export { User, ProposedClub, MorningClub, WednesdayClub }; // ADD WednesdayClub
+
+export { User, ProposedClub, MorningClub, WednesdayClub, Teacher };
 
 export default {
   sequelize,
   User,
   ProposedClub,
   MorningClub,
-  WednesdayClub, 
+  WednesdayClub,
+  Teacher,
 };
