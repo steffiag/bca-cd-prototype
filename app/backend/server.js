@@ -5,11 +5,16 @@ import setupAuth from "./auth.js";
 import db from "./models/index.js";
 import { getFormResponses } from "./google-forms.js";
 import OpenAI from "openai";
+import nodemailer from "nodemailer";
+import stringSimilarity from 'string-similarity';
 
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
 });
-
 
 
 //calculates similarity
@@ -22,6 +27,15 @@ function cosineSimilarity(a, b) {
 
 
 dotenv.config();
+
+//const openai = new OpenAI({
+//  apiKey: OPENAI_API_KEY,
+//});
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 
 console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
 console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET); // testing if form.credentials.json is working
@@ -285,32 +299,57 @@ app.post("/morning-club", async (req, res) => {
 });
 
 
-
-
+// Route to fetch morning clubs for AI merge
 app.get("/ai-merges", async (req, res) => {
   try {
-    const responses = await getFormResponses(
+    // Get Google Form clubs
+    const formResponses = await getFormResponses(
       "1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM"
     );
-    console.log(JSON.stringify(responses, null, 2));
-    const merge = responses.map((resp) => {
+
+    const formClubs = formResponses.map(resp => {
       const answers = resp.answers;
       return {
-        club: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
-        mission: answers["76676db8"]?.textAnswers.answers[0].value || "",
+        club: answers["58d95ef3"]?.textAnswers.answers[0].value?.trim() || "",
+        mission: answers["76676db8"]?.textAnswers.answers[0].value?.trim() || "",
+        email: answers["6bdbdc40"]?.textAnswers.answers[0].value?.trim() || "",
       };
     });
-    res.json(merge);
+
+    // Get manually added clubs from DB
+    const dbClubs = await db.MorningClub.findAll();
+    const manualClubs = dbClubs.map(club => ({
+      club: club.club_name.trim(),
+      mission: (club.mission || "").trim(),
+      email: club.leader_email.trim(),
+    }));
+
+    // Combine both sources
+    const allClubs = [...manualClubs, ...formClubs];
+
+    // Deduplicate by club name (keep the first occurrence)
+    const seen = new Set();
+    const uniqueClubs = allClubs.filter(c => {
+      const key = c.club.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    console.log("/ai-merges returning unique clubs:", uniqueClubs);
+
+    res.json(uniqueClubs);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to fetch club proposals", });
+    console.error("Failed to fetch AI merge clubs:", err);
+    res.status(500).json({ error: "Failed to fetch AI merge clubs" });
   }
 });
 
 
+
 app.get("/openai-test", async (req, res) => {
   try {
-    console.log("🔵 OpenAI test endpoint hit");
+    console.log("OpenAI test endpoint hit");
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -322,14 +361,14 @@ app.get("/openai-test", async (req, res) => {
 
     const reply = completion.choices[0].message.content;
 
-    console.log("🟢 OpenAI replied:", reply);
+    console.log("OpenAI replied:", reply);
 
     res.json({
       success: true,
       reply,
     });
   } catch (err) {
-    console.error("🔴 OpenAI test failed:", err);
+    console.error("OpenAI test failed:", err);
     res.status(500).json({
       success: false,
       error: err.message,
@@ -394,3 +433,53 @@ app.post("/assess-similarity", async (req, res) => {
     res.status(500).json({ error: "Similarity check failed" });
   }
 });
+
+
+// Send merge emails to club admins
+app.post('/send-merge-emails', async (req, res) => {
+  console.log('/send-merge-emails called');
+  const adminEmail = req.body.adminEmail;
+  const merges = req.body.merges || [];
+
+  if (!adminEmail || !Array.isArray(merges) || merges.length === 0) {
+    console.log('Missing admin email or merges');
+    return res.status(400).json({ error: 'Invalid request' });
+  }
+
+  for (const merge of merges) {
+    const recipients = [];
+    if (merge.emailA) recipients.push(merge.emailA);
+    if (merge.emailB && merge.emailB !== merge.emailA) recipients.push(merge.emailB);
+
+    if (recipients.length === 0) {
+      console.log('Skipping merge: no valid recipient emails', merge);
+      continue;
+    }
+
+    console.log('Processing merge:', merge, 'Recipients:', recipients);
+
+    try {
+      const info = await transporter.sendMail({
+        from: adminEmail,
+        to: recipients,
+        subject: `Merge suggestion: ${merge.clubA} + ${merge.clubB}`,
+        text: `Hello!
+        After reviewing club proposals, we noticed that your clubs have similar missions and activities. We suggest considering a potential merge to make your efforts even stronger.
+        
+        Clubs involved:
+        - ${merge.clubA}
+        - ${merge.clubB}
+        
+        Both club leaders are cc'd on this email. Please coordinate with each other and let us know what you decide.
+        
+        Thank you for your collaboration and dedication to your clubs!`
+      });
+      console.log('Email send result:', info);
+    } catch (err) {
+      console.error('Email send failed:', err);
+    }
+  }
+
+  res.json({ status: 'All merges processed' });
+});
+

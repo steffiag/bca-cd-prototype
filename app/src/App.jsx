@@ -12,6 +12,7 @@ function App() {
   const [page, setPage] = useState("morning"); 
   const [teacherAvailability, setTeacherAvailability] = useState([]);
   const [aiMerges, setAiMerges] = useState([]);
+  const [selectedMerges, setSelectedMerges] = useState(new Set());
 
 
   useEffect(() => {
@@ -245,7 +246,49 @@ const wednesdayClubs = [
                     marginBottom: "30px",
                   }}
                 >
-                  <button>Send Email Suggesting Selected Clubs Merge</button>
+
+                  <button onClick={async () => {
+                    const selectedGroups = aiMerges.filter((_, idx) =>
+                      selectedMerges.has(idx)
+                  );
+                  
+                  if (selectedGroups.length === 0) {
+                    alert("Please select at least one merge suggestion.");
+                    return;
+                  }
+                  
+                  if (!user || !user.email) {
+                    alert("Admin email not found. Make sure you are logged in.");
+                    return;
+                  }
+                  
+                  try {
+                    const response = await fetch(
+                      "http://localhost:4000/send-merge-emails",
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({
+                          merges: selectedGroups,
+                          adminEmail: user.email, // <-- send admin email here
+                        }),
+                      }
+                    );
+                    
+                    const result = await response.json();
+                    alert(result.message || "Emails sent.");
+                  } 
+                  
+                  catch (err) {
+                    console.error("Failed to send emails:", err);
+                    alert("Failed to send emails. Check console for details.");
+                  }
+                  }}
+                  >
+                    Send Email Suggesting Selected Clubs Merge
+                    </button>
+
 
                   <div>
                     <strong>Deadline:</strong>{" "}
@@ -270,9 +313,32 @@ const wednesdayClubs = [
           boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
         }}
       >
-        <div style={{ fontWeight: "600", marginBottom: "15px", color: "#1e3a5f" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontWeight: "600",
+            marginBottom: "15px",
+            color: "#1e3a5f",
+          }}
+      >
+          <input
+            type="checkbox"
+            checked={selectedMerges.has(i)}
+            onChange={(e) => {
+              const updated = new Set(selectedMerges);
+              if (e.target.checked) {
+                updated.add(i);
+              } else {
+                updated.delete(i);
+              }
+              setSelectedMerges(updated);
+            }}
+          />
           AI Suggested Merge:
         </div>
+
 
         {[{name: group.clubA, email: group.emailA}, {name: group.clubB, email: group.emailB}].map((club, idx) => (
           <div
