@@ -19,5 +19,13 @@ export async function getFormResponses(formId) {
     console.error("Error fetching form responses:", err);
     return [];
   }
+};
+
+const TEST_FORM_ID = "1a7PoNfDMwsEwFasPrA_6k8Fti4__E11xC32Eanchcc8";
+
+async function test() {
+  const responses = await getFormResponses(TEST_FORM_ID);
+  console.log(JSON.stringify(responses, null, 2));
 }
 
+test();

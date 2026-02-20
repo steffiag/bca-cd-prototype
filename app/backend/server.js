@@ -230,18 +230,27 @@ async function syncWednesdayClubs() {
     const responseId = resp.responseId;
 
     const exists = await db.WednesdayClub.findOne({ where: { form_response_id: responseId } });
-    if (exists) continue;
 
     const answers = resp.answers;
+    if (exists) {
+      await exists.update({
+        mission: answers["5967c5af"]?.textAnswers?.answers?.[0]?.value || "",
+        photo_file_id:
+          answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
+      });
+      continue;
+    }
 
     await db.WednesdayClub.create({
       form_response_id: responseId,
       club_name: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
+      mission: answers["5967c5af"]?.textAnswers?.answers?.[0]?.value || "",
       leader_email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
       category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
       advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
       room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
       members_raw: answers["1341f104"]?.textAnswers.answers[0].value || "",
+      photo_file_id: answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
       status: "Pending",
       source: "google_form",
     });
@@ -385,6 +394,58 @@ app.post("/morning-club", async (req, res) => {
   }
 });
 
+app.get("/approved-morning-clubs", async (req, res) => {
+  try {
+    await syncMorningClubs();
+
+    const clubs = await db.MorningClub.findAll({
+      where: { status: "Approved" },
+      attributes: [
+        "club_name",
+        "mission",
+        "photo_file_id",
+      ],
+    });
+
+    res.json(
+      clubs.map(c => ({
+        club: c.club_name,
+        mission: c.mission,
+        photo: c.photo_file_id,
+      }))
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch approved morning clubs" });
+  }
+});
+
+app.get("/approved-wednesday-clubs", async (req, res) => {
+  try {
+    await syncWednesdayClubs();
+
+    const clubs = await db.WednesdayClub.findAll({
+      where: { status: "Approved" },
+      attributes: [
+        "club_name",
+        "mission",
+        "photo_file_id",
+      ],
+    });
+
+    res.json(
+      clubs.map(c => ({
+        club: c.club_name,
+        mission: c.mission,
+        photo: c.photo_file_id,
+      }))
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch approved Wednesday clubs" });
+  }
+});
+
 app.get("/ai-merges", async (req, res) => {
   try {
     const responses = await getFormResponses(
@@ -438,25 +499,35 @@ async function syncMorningClubs() {
   const responses = await getFormResponses(
     "1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM"
   );
-
+  
   for (const resp of responses) {
     const responseId = resp.responseId;
 
     const exists = await db.MorningClub.findOne({ where: { form_response_id: responseId } });
-    if (exists) continue;
 
     const answers = resp.answers;
+    if (exists) {
+      await exists.update({
+        mission: answers["76676db8"]?.textAnswers?.answers?.[0]?.value || "",
+        photo_file_id:
+          answers["2cbc5d6b"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
+      });
+      continue;
+    }
+
 
     await db.MorningClub.create({
       form_response_id: responseId,
-      club_name: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
-      leader_email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
-      category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
-      advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
-      room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
-      day: answers["33d1d5a4"]?.textAnswers.answers[0].value || "",
-      time: answers["21c77a77"]?.textAnswers.answers[0].value || "",
-      members_raw: answers["1341f104"]?.textAnswers.answers[0].value || "",
+      club_name: answers["58d95ef3"]?.textAnswers?.answers?.[0]?.value || "",
+      mission: answers["76676db8"]?.textAnswers?.answers?.[0]?.value || "",
+      leader_email: answers["6bdbdc40"]?.textAnswers?.answers?.[0]?.value || "",
+      category: answers["58e9aaf9"]?.textAnswers?.answers?.[0]?.value || "",
+      advisor: answers["5573285b"]?.textAnswers?.answers?.[0]?.value || "",
+      room: answers["0478ecea"]?.textAnswers?.answers?.[0]?.value || "",
+      day: answers["33d1d5a4"]?.textAnswers?.answers?.[0]?.value || "",
+      time: answers["21c77a77"]?.textAnswers?.answers?.[0]?.value || "",
+      members_raw: answers["1341f104"]?.textAnswers?.answers?.[0]?.value || "",
+      photo_file_id: answers["2cbc5d6b"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
       status: "Pending",
       merge: "No",
       source: "google_form",

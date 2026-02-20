@@ -4,7 +4,8 @@ import ClubGrid from "./components/ClubGrid";
 import TeacherAvailability from "./components/TeacherAvailability";
 import WednesdayClubManagement from "./components/WednesdayClubManagement";
 import MorningClubManagement from "./components/MorningClubManagement";
-
+import axios from "axios"; 
+import { useClubs } from "./hooks/UseClubs";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -13,6 +14,9 @@ function App() {
   const [teacherAvailability, setTeacherAvailability] = useState([]);
   const [aiMerges, setAiMerges] = useState([]);
 
+  const { clubs: morningClubs, loading: loadingMorning } = useClubs("morning");
+  const { clubs: wednesdayClubs, loading: loadingWednesday } = useClubs("wednesday");
+  
 
   useEffect(() => {
     fetch("http://localhost:4000/auth/user", { credentials: "include" })
@@ -48,41 +52,41 @@ function App() {
   }, [page]);
 
 
-  const morningClubs = [ 
-    {
-      name: "Robotics Club",
-      mission: "Build, program, and compete with robots.",
-      members: 18,
-      image: "/images/robotics.jpg",
-    },
-    {
-      name: "Creative Writing",
-      mission: "Explore storytelling, poetry, and prose.",
-      members: 12,
-      image: "/images/creative-writing.jpg",
-    },
-    {
-      name: "Chess Club",
-      mission: "Compete with others in a supportive environment",
-      members: 6,
-      image: "/images/chess.jpg",
-    },
-  ];
+  // const morningClubs = [ 
+  //   {
+  //     name: "Robotics Club",
+  //     mission: "Build, program, and compete with robots.",
+  //     members: 18,
+  //     image: "/images/robotics.jpg",
+  //   },
+  //   {
+  //     name: "Creative Writing",
+  //     mission: "Explore storytelling, poetry, and prose.",
+  //     members: 12,
+  //     image: "/images/creative-writing.jpg",
+  //   },
+  //   {
+  //     name: "Chess Club",
+  //     mission: "Compete with others in a supportive environment",
+  //     members: 6,
+  //     image: "/images/chess.jpg",
+  //   },
+  // ];
 
-  const wednesdayClubs = [
-    {
-      name: "Drama Club",
-      mission: "Acting, directing, and stage performance.",
-      members: 15,
-      image: "/images/drama.jpg",
-    },
-    {
-      name: "Art Club",
-      mission: "Drawing, painting, and creative expression.",
-      members: 10,
-      image: "/images/art.jpeg",
-    },
-  ];
+  // const wednesdayClubs = [
+  //   {
+  //     name: "Drama Club",
+  //     mission: "Acting, directing, and stage performance.",
+  //     members: 15,
+  //     image: "/images/drama.jpg",
+  //   },
+  //   {
+  //     name: "Art Club",
+  //     mission: "Drawing, painting, and creative expression.",
+  //     members: 10,
+  //     image: "/images/art.jpeg",
+  //   },
+  // ];
 
 
   // =====================
@@ -326,8 +330,21 @@ function App() {
         )}
         {portal === "student" && (
           <>
-            {page === "morning" && <ClubGrid title="Morning Clubs" clubs={morningClubs} />}
-            {page === "wednesday" && <ClubGrid title="Wednesday Clubs" clubs={wednesdayClubs} />}
+            {page === "morning" &&
+              (loadingMorning ? (
+                <p>Loading morning clubs...</p>
+              ) : (
+                <ClubGrid title="Morning Clubs" clubs={morningClubs} />
+              ))
+            }
+
+            {page === "wednesday" &&
+              (loadingWednesday ? (
+                <p>Loading Wednesday clubs...</p>
+              ) : (
+                <ClubGrid title="Wednesday Clubs" clubs={wednesdayClubs} />
+              ))
+            }
           </>
         )}
       </div>
