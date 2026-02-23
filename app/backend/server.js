@@ -6,6 +6,9 @@ import db from "./models/index.js";
 import { getFormResponses } from "./google-forms.js";
 import OpenAI from "openai";
 import { downloadImage } from "./download-images.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -25,12 +28,25 @@ console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
 console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
 
 const app = express();
-const PORT = 4000;
-
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 
 setupAuth(app);
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+app.post("/upload-club-image/:clubName", upload.single("image"), (req, res) => {
+  try {
+    const safeName = req.params.clubName;
+    const filePath = path.join(process.cwd(), "../public/images", `${safeName}.png`);
+    fs.writeFileSync(filePath, req.file.buffer);
+    res.json({ success: true, filename: `${safeName}.png` });
+  } catch (err) {
+    console.error("Image upload error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+const PORT = 4000;
 
 app.get("/", (req, res) => {
   res.send("BCA Club Dashboard backend is running!");

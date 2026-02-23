@@ -30,8 +30,8 @@ export async function downloadImage(fileId, clubName) {
       writer.on("error", reject);
     });
 
-    console.log(`✅ Downloaded image for ${clubName}`);
+    console.log(`Downloaded image for ${clubName}`);
   } catch (err) {
-    console.error(`❌ Failed to download image for ${clubName}:`, err.message);
+    console.error(`Failed to download image for ${clubName}:`, err.message);
   }
 }

@@ -11,6 +11,11 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
     status: club.status || "Pending",
     mission: club.mission || "", 
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageVersion, setImageVersion] = useState(Date.now());
+
+  const safeName = club.club?.replace(/[^a-z0-9]/gi, "_");
 
   useEffect(() => {
       if (club && isOpen) {
@@ -24,6 +29,8 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
           status: club.status || "Pending",
           mission: club.mission || "",
         });
+        setImagePreview( club.club ? `/images/${club.club.replace(/[^a-z0-9]/gi, "_")}.png` : null );
+        setImageFile(null);
       }
     }, [club, isOpen]);
 
@@ -33,8 +40,14 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
 
-    const handleSave = async () => {
+  const handleSave = async () => {
     try {
       const saveData = {
         club: formData.clubName,
@@ -50,18 +63,43 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
         mission: formData.mission,
       };
 
-      await fetch(`http://localhost:4000/morning-club/${club.dbId || ''}`, {
-        method: club.isNew ? "POST" : "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(saveData),
-      });
+      const response = await fetch(
+        `http://localhost:4000/wednesday-club/${club.dbId}`,
+        {
+          method: club.isNew ? "POST" : "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(saveData),
+        }
+      );
 
+      if (!response.ok) {
+        const data = await response.json();
+        console.error("Club save failed:", data);
+        alert("Failed to save club: " + (data.error || response.status));
+        return;
+      }
+
+      if (imageFile) {
+        const safeName = formData.clubName.replace(/\s+/g, "_");
+        const formDataImg = new FormData();
+        formDataImg.append("image", imageFile);
+
+        await fetch(
+          `http://localhost:4000/upload-club-image/${safeName}`,
+          {
+            method: "POST",
+            credentials: "include",
+            body: formDataImg,
+          }
+        );
+        setImageVersion(Date.now());
+      }
       onSave({ ...saveData, dbId: club.dbId });
       onClose();
     } catch (err) {
-      console.error("Error saving club:", err);
-      alert("Failed to save club");
+      console.error("Error saving club:", err, err.stack);
+      alert("Failed to save club: " + err.message);
     }
   };
 
@@ -83,6 +121,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
 
   const selectStyle = { ...inputStyle, cursor: "pointer" };
   const textareaStyle = { ...inputStyle, resize: "none" };
+  const existingImage = `/images/${club.club?.replace(/[^a-z0-9]/gi, "_")}.png`;
 
   return (
     <div
@@ -183,24 +222,63 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
           style={textareaStyle}
         />
       </div>
-
-      {/* <div style={fieldStyle}>
-        <label>Photo:</label>
-        <input
-          type="file"
-          name="photo"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files[0];
-            setFormData((prev) => ({ ...prev, photo: file }));
+      <div style={fieldStyle}>
+        <label>Club Image:</label>
+        <div
+          style={{
+            width: "120px",
+            height: "120px",
+            borderRadius: "8px",
+            border: "1px solid #cfd8e8",
+            overflow: "hidden",
+            background: "#f0f4f8",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-          style={inputStyle}
-        />
-        {formData.photo && typeof formData.photo === "string" && (
-          <img src={formData.photo} alt="Club Banner" style={{ maxWidth: "100%", marginTop: "10px" }} />
-        )}
-      </div> */}
-
+        >
+          {imagePreview ? (
+            <img
+              src={
+                imagePreview?.startsWith("blob:")
+                  ? imagePreview
+                  : `${imagePreview}?v=${imageVersion}`
+              }
+              alt="Club"
+              onError={() => setImagePreview(null)}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+              }}
+            />
+          ) : (
+            <p style={{ margin: 0, fontSize: "12px", color: "#9aafc4" }}>
+              No image
+            </p>
+          )}
+        </div>
+        <label
+          style={{
+            background: "#5a8fc0",
+            color: "white",
+            padding: "6px 12px",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "13px",
+            fontWeight: 600,
+            marginTop: "8px",
+          }}
+        >
+          {imagePreview ? "Change Image" : "Upload Image"}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: "none" }}
+          />
+        </label>
+      </div>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "20px" }}>
           <button
             style={{
