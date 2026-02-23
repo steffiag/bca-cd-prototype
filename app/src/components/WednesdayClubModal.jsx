@@ -9,6 +9,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
     room: club.room || "",
     members: club.membersRaw || "",
     status: club.status || "Pending",
+    mission: club.mission || "", 
   });
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
           room: club.room || "",
           members: club.membersRaw || "",
           status: club.status || "Pending",
+          mission: club.mission || "",
         });
       }
     }, [club, isOpen]);
@@ -32,9 +34,35 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    onSave(formData);
-    onClose();
+    const handleSave = async () => {
+    try {
+      const saveData = {
+        club: formData.clubName,
+        email: formData.email,
+        category: formData.category,
+        advisor: formData.advisor,
+        room: formData.room,
+        day: formData.day,
+        time: formData.time,
+        members: formData.members,
+        status: formData.status,
+        merge: formData.merge,
+        mission: formData.mission,
+      };
+
+      await fetch(`http://localhost:4000/morning-club/${club.dbId || ''}`, {
+        method: club.isNew ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(saveData),
+      });
+
+      onSave({ ...saveData, dbId: club.dbId });
+      onClose();
+    } catch (err) {
+      console.error("Error saving club:", err);
+      alert("Failed to save club");
+    }
   };
 
   const fieldStyle = {
@@ -144,6 +172,34 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
             <option>Rejected</option>
           </select>
         </div>
+        <div style={fieldStyle}>
+        <label>Mission Statement:</label>
+        <textarea
+          name="mission"
+          value={formData.mission}
+          onChange={handleChange}
+          rows={3}
+          placeholder="Enter mission statement"
+          style={textareaStyle}
+        />
+      </div>
+
+      {/* <div style={fieldStyle}>
+        <label>Photo:</label>
+        <input
+          type="file"
+          name="photo"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files[0];
+            setFormData((prev) => ({ ...prev, photo: file }));
+          }}
+          style={inputStyle}
+        />
+        {formData.photo && typeof formData.photo === "string" && (
+          <img src={formData.photo} alt="Club Banner" style={{ maxWidth: "100%", marginTop: "10px" }} />
+        )}
+      </div> */}
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "20px" }}>
           <button

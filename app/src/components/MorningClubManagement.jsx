@@ -370,6 +370,7 @@ const toggleClubSelection = (clubId) => {
                   req_advisor: "",
                   status: updatedData.status,
                   merge: updatedData.merge,
+                  mission: updatedData.mission,
                 };
 
                 const response = await fetch("http://localhost:4000/morning-club", {
@@ -409,6 +410,7 @@ const toggleClubSelection = (clubId) => {
                     members: updatedData.members,
                     status: updatedData.status,
                     merge: updatedData.merge,
+                    mission: updatedData.mission,
                   }),
                 });
 

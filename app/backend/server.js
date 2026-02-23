@@ -5,6 +5,7 @@ import setupAuth from "./auth.js";
 import db from "./models/index.js";
 import { getFormResponses } from "./google-forms.js";
 import OpenAI from "openai";
+import { downloadImage } from "./download-images.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -223,37 +224,58 @@ app.delete("/wednesday-club/:identifier/:source", async (req, res) => {
 
 async function syncWednesdayClubs() {
   const responses = await getFormResponses(
-    "1a7PoNfDMwsEwFasPrA_6k8Fti4__E11xC32Eanchcc8" 
+    "1a7PoNfDMwsEwFasPrA_6k8Fti4__E11xC32Eanchcc8"
   );
-
   for (const resp of responses) {
     const responseId = resp.responseId;
-
-    const exists = await db.WednesdayClub.findOne({ where: { form_response_id: responseId } });
-
+    const exists = await db.WednesdayClub.findOne({
+      where: { form_response_id: responseId },
+    });
     const answers = resp.answers;
     if (exists) {
-      await exists.update({
-        mission: answers["5967c5af"]?.textAnswers?.answers?.[0]?.value || "",
-        photo_file_id:
-          answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
-      });
+      const formMission =
+        answers["5967c5af"]?.textAnswers?.answers?.[0]?.value;
+      const formPhoto =
+        answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId;
+
+      const updates = {};
+      if (formPhoto) updates.photo_file_id = formPhoto;
+      if (formMission && !exists.mission) updates.mission = formMission;
+
+      if (Object.keys(updates).length > 0) {
+        await exists.update(updates);
+      }
       continue;
     }
-
-    await db.WednesdayClub.create({
+    const newClub = await db.WednesdayClub.create({
       form_response_id: responseId,
-      club_name: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
-      mission: answers["5967c5af"]?.textAnswers?.answers?.[0]?.value || "",
-      leader_email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
-      category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
-      advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
-      room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
-      members_raw: answers["1341f104"]?.textAnswers.answers[0].value || "",
-      photo_file_id: answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
+      club_name:
+        answers["58d95ef3"]?.textAnswers?.answers?.[0]?.value || "",
+      mission:
+        answers["5967c5af"]?.textAnswers?.answers?.[0]?.value || "",
+      leader_email:
+        answers["6bdbdc40"]?.textAnswers?.answers?.[0]?.value || "",
+      category:
+        answers["58e9aaf9"]?.textAnswers?.answers?.[0]?.value || "",
+      advisor:
+        answers["5573285b"]?.textAnswers?.answers?.[0]?.value || "",
+      room:
+        answers["0478ecea"]?.textAnswers?.answers?.[0]?.value || "",
+      day:
+        answers["33d1d5a4"]?.textAnswers?.answers?.[0]?.value || "",
+      time:
+        answers["21c77a77"]?.textAnswers?.answers?.[0]?.value || "",
+      members_raw:
+        answers["1341f104"]?.textAnswers?.answers?.[0]?.value || "",
+      photo_file_id:
+        answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
       status: "Pending",
+      merge: "No",
       source: "google_form",
     });
+    if (newClub.photo_file_id) {
+      downloadImage(newClub.photo_file_id, newClub.club_name);
+    }
   }
 }
 
@@ -274,6 +296,7 @@ app.get("/wednesday-club", async (req, res) => {
       members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
       status: club.status,
       source: club.source,
+      mission: club.mission || "",
     }));
 
     res.json(clubs);
@@ -285,7 +308,7 @@ app.get("/wednesday-club", async (req, res) => {
 
 app.post("/wednesday-club", async (req, res) => {
   try {
-    const { club, email, category, advisor, room, members, status } = req.body;
+    const { club, email, category, advisor, room, members, status, mission } = req.body;
     
     const newClub = await db.WednesdayClub.create({
       club_name: club,
@@ -295,6 +318,7 @@ app.post("/wednesday-club", async (req, res) => {
       room: room,
       members_raw: members,
       status: status || "Pending",
+      mission: mission || "",
       source: "manual",
     });
 
@@ -346,6 +370,7 @@ app.get("/morning-club", async (req, res) => {
     const dbClubs = await db.MorningClub.findAll();
 
     const clubs = dbClubs.map((club) => ({
+      dbId: club.id,
       club: club.club_name,
       email: club.leader_email,
       category: club.category,
@@ -353,12 +378,12 @@ app.get("/morning-club", async (req, res) => {
       room: club.room,
       day: club.day,
       time: club.time,
-      members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
       membersRaw: club.members_raw,
+      members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
       status: club.status,
       merge: club.merge,
       source: club.source,
-      dbId: club.id,
+      mission: club.mission || "",
     }));
 
     res.json(clubs);
@@ -370,7 +395,7 @@ app.get("/morning-club", async (req, res) => {
 
 app.post("/morning-club", async (req, res) => {
   try {
-    const { club, email, category, advisor, room, day, time, members, status, merge } = req.body;
+    const { club, email, category, advisor, room, day, time, members, status, merge, mission } = req.body;
     
     const newClub = await db.MorningClub.create({
       club_name: club,
@@ -383,13 +408,14 @@ app.post("/morning-club", async (req, res) => {
       members_raw: members,
       status: status || "Pending",
       merge: merge || "No",
+      mission: mission || "",
       source: "manual",
     });
 
     console.log("New club created:", newClub);
     res.json({ success: true, club: newClub });
   } catch (err) {
-    console.error("Error saving club:", err);
+    console.error("Error saving Morning club:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -496,27 +522,25 @@ app.get("/openai-test", async (req, res) => {
 });
 
 async function syncMorningClubs() {
-  const responses = await getFormResponses(
-    "1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM"
-  );
-  
+  const responses = await getFormResponses("1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM");
+
   for (const resp of responses) {
     const responseId = resp.responseId;
-
     const exists = await db.MorningClub.findOne({ where: { form_response_id: responseId } });
-
     const answers = resp.answers;
+
     if (exists) {
-      await exists.update({
-        mission: answers["76676db8"]?.textAnswers?.answers?.[0]?.value || "",
-        photo_file_id:
-          answers["2cbc5d6b"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
-      });
+      const formMission = answers["76676db8"]?.textAnswers?.answers?.[0]?.value;
+      const formPhoto = answers["2cbc5d6b"]?.fileUploadAnswers?.answers?.[0]?.fileId;
+
+      const updates = {};
+      if (formPhoto) updates.photo_file_id = formPhoto;
+      if (formMission && !exists.mission) updates.mission = formMission;
+      if (Object.keys(updates).length > 0) await exists.update(updates);
       continue;
     }
 
-
-    await db.MorningClub.create({
+    const newClub = await db.MorningClub.create({
       form_response_id: responseId,
       club_name: answers["58d95ef3"]?.textAnswers?.answers?.[0]?.value || "",
       mission: answers["76676db8"]?.textAnswers?.answers?.[0]?.value || "",
@@ -532,6 +556,8 @@ async function syncMorningClubs() {
       merge: "No",
       source: "google_form",
     });
+
+    downloadImage(newClub.photo_file_id, newClub.club_name);
   }
 }
 
@@ -549,6 +575,7 @@ app.put("/morning-club/:id", async (req, res) => {
       members,
       status,
       merge,
+      mission,
     } = req.body;
 
     const clubToUpdate = await db.MorningClub.findByPk(id);
@@ -567,6 +594,7 @@ app.put("/morning-club/:id", async (req, res) => {
       members_raw: members,
       status,
       merge,
+      mission,
     });
 
     res.json({ success: true, club: clubToUpdate });
@@ -579,7 +607,7 @@ app.put("/morning-club/:id", async (req, res) => {
 app.put("/wednesday-club/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { club, email, category, advisor, room, members, status } = req.body;
+    const { club, email, category, advisor, room, members, status, mission } = req.body;
 
     const clubToUpdate = await db.WednesdayClub.findByPk(id);
     if (!clubToUpdate) {
@@ -594,6 +622,7 @@ app.put("/wednesday-club/:id", async (req, res) => {
       room,
       members_raw: members,
       status,
+      mission,
     });
 
     res.json({ success: true, club: clubToUpdate });

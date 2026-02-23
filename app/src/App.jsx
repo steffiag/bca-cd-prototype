@@ -14,9 +14,8 @@ function App() {
   const [teacherAvailability, setTeacherAvailability] = useState([]);
   const [aiMerges, setAiMerges] = useState([]);
 
-  const { clubs: morningClubs, loading: loadingMorning } = useClubs("morning");
-  const { clubs: wednesdayClubs, loading: loadingWednesday } = useClubs("wednesday");
-  
+  const { clubs: morningClubs, loading: loadingMorning, refresh: refreshMorning } = useClubs("morning");
+  const { clubs: wednesdayClubs, loading: loadingWednesday, refresh: refreshWednesday } = useClubs("wednesday");
 
   useEffect(() => {
     fetch("http://localhost:4000/auth/user", { credentials: "include" })
@@ -206,21 +205,24 @@ function App() {
             Admin Portal
           </button>
           <button
-            onClick={() => {
-              setPortal("student");
-              setPage("morning");
-            }}
-            style={{
-              background: portal === "student" ? "#4a90e2" : "#9e9e9e",
-              color: "white",
-              padding: "6px 12px",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            Student Portal
-          </button>
+  onClick={() => {
+      setPortal("student");
+      setPage("morning");
+
+      refreshMorning();
+      refreshWednesday();
+    }}
+    style={{
+      background: portal === "student" ? "#4a90e2" : "#9e9e9e",
+      color: "white",
+      padding: "6px 12px",
+      border: "none",
+      borderRadius: "6px",
+      cursor: "pointer",
+    }}
+  >
+    Student Portal
+  </button>
         </div>
 
         {/* =====================
@@ -332,7 +334,7 @@ function App() {
           <>
             {page === "morning" &&
               (loadingMorning ? (
-                <p>Loading morning clubs...</p>
+                <p></p>
               ) : (
                 <ClubGrid title="Morning Clubs" clubs={morningClubs} />
               ))
@@ -340,7 +342,7 @@ function App() {
 
             {page === "wednesday" &&
               (loadingWednesday ? (
-                <p>Loading Wednesday clubs...</p>
+                <p></p>
               ) : (
                 <ClubGrid title="Wednesday Clubs" clubs={wednesdayClubs} />
               ))

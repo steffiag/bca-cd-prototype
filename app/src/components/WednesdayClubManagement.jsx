@@ -377,6 +377,7 @@ export default function WednesdayClubManagement({ user }) {
                 membersRaw: updatedData.members,
                 req_advisor: "",
                 status: updatedData.status || "Pending",
+                mission: updatedData.mission,
               };
 
               const response = await fetch("http://localhost:4000/wednesday-club", {
@@ -413,6 +414,7 @@ export default function WednesdayClubManagement({ user }) {
                   room: updatedData.room,
                   members: updatedData.members,
                   status: updatedData.status,
+                  mission: updatedData.mission,
                 }),
               });
 
