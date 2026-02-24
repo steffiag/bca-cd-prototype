@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import ClubModalContent from "./WednesdayClubModal";
+import MembersModal from "./MembersModal";
 
 export default function WednesdayClubManagement({ user }) {
   const [clubs, setClubs] = useState([]);
@@ -12,6 +13,9 @@ export default function WednesdayClubManagement({ user }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClubs, setSelectedClubs] = useState([]);
   const [bulkStatus, setBulkStatus] = useState("");
+  const [membersClub, setMembersClub] = useState(null);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [clubMembers, setClubMembers] = useState([]);
 
   // Check if user is a teacher
   const isTeacher = user?.isTeacher || false;
@@ -154,6 +158,21 @@ export default function WednesdayClubManagement({ user }) {
       alert(err.message);
     }
   };
+  const handleViewMembers = async (club) => {
+  try {
+    const res = await fetch(
+      `http://localhost:4000/club/${club.dbId}/members?type=morning`,
+      { credentials: "include" }
+    );
+    const data = await res.json();
+    setClubMembers(data.members || []);
+    setMembersClub(club);
+    setIsMembersModalOpen(true);
+  } catch (err) {
+    console.error("Failed to fetch members:", err);
+    alert("Failed to load members");
+  }
+};
 
   return (
     <div>
@@ -306,6 +325,7 @@ export default function WednesdayClubManagement({ user }) {
             <th>5 members</th>
             <th>Status</th>
             <th>View/Edit</th>
+            <th>Members</th>
             {isTeacher && <th>Delete</th>}
           </tr>
         </thead>
@@ -332,6 +352,13 @@ export default function WednesdayClubManagement({ user }) {
                   Edit
                 </button>
               </td>
+              <td>
+              <button
+                onClick={() => handleViewMembers(club)}
+              >
+                Members
+              </button>
+            </td>
               {isTeacher && (
                 <td>
                   <button 
@@ -435,9 +462,16 @@ export default function WednesdayClubManagement({ user }) {
           setIsModalOpen(false);
           setSelectedClub(null);
         }}
-
         />
       )}
+
+      {isMembersModalOpen && membersClub && (
+          <MembersModal
+              club={membersClub}
+              members={clubMembers}
+              onClose={() => setIsMembersModalOpen(false)}
+          />
+            )}
     </div>
   );
 }

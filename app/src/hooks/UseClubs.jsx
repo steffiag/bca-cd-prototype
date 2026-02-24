@@ -20,12 +20,14 @@ export function useClubs(type) {
       setClubs(
         res.data.map((c) => {
           const fileName = c.club.replace(/[^a-z0-9]/gi, "_") + ".png";
-
+          const count = c.members ? c.members.split(",").filter(Boolean).length : 0;
           return {
+            dbId: c.dbId,
             name: c.club,
             mission: c.mission,
-            members: c.members || "N/A",
+            members: count,
             image: `/images/${fileName}`,
+            type,
           };
         })
       );

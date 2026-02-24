@@ -268,6 +268,9 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
             fontSize: "13px",
             fontWeight: 600,
             marginTop: "8px",
+
+            display: "inline-block",
+            width: "fit-content",
           }}
         >
           {imagePreview ? "Change Image" : "Upload Image"}

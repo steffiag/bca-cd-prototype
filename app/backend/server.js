@@ -443,6 +443,7 @@ app.get("/approved-morning-clubs", async (req, res) => {
     const clubs = await db.MorningClub.findAll({
       where: { status: "Approved" },
       attributes: [
+        "id",
         "club_name",
         "mission",
         "photo_file_id",
@@ -451,6 +452,7 @@ app.get("/approved-morning-clubs", async (req, res) => {
 
     res.json(
       clubs.map(c => ({
+        dbId: c.id, 
         club: c.club_name,
         mission: c.mission,
         photo: c.photo_file_id,
@@ -469,6 +471,7 @@ app.get("/approved-wednesday-clubs", async (req, res) => {
     const clubs = await db.WednesdayClub.findAll({
       where: { status: "Approved" },
       attributes: [
+        "id",
         "club_name",
         "mission",
         "photo_file_id",
@@ -477,6 +480,7 @@ app.get("/approved-wednesday-clubs", async (req, res) => {
 
     res.json(
       clubs.map(c => ({
+        dbId: c.id, 
         club: c.club_name,
         mission: c.mission,
         photo: c.photo_file_id,
@@ -688,6 +692,125 @@ app.post("/assess-similarity", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Similarity check failed" });
+  }
+});
+
+// Signup Functionality
+app.post("/club-enrollments", async (req, res) => {
+  try {
+    const { user_id, club_id, club_type } = req.body;
+
+    if (!user_id || !club_id || !club_type) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
+
+    // Look up the actual user record by email
+    const user = await db.User.findOne({ where: { usr_email: user_id } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+    const actualUserId = user.usr_id;
+
+    if (club_type === "wednesday") {
+      const existing = await db.ClubEnrollment.findOne({
+        where: { user_id: actualUserId, club_type: "wednesday" },
+      });
+      if (existing) {
+        return res.status(400).json({ success: false, error: "Already enrolled in a Wednesday club" });
+      }
+    }
+
+    const already = await db.ClubEnrollment.findOne({
+      where: { user_id: actualUserId, club_id, club_type },
+    });
+    if (already) {
+      return res.status(400).json({ success: false, error: "Already enrolled in this club" });
+    }
+
+    const enrollment = await db.ClubEnrollment.create({ user_id: actualUserId, club_id, club_type });
+
+    const ClubModel = club_type === "morning" ? db.MorningClub : db.WednesdayClub;
+    const club = await ClubModel.findByPk(club_id);
+    const members = club.members_raw ? club.members_raw.split(",") : [];
+    if (!club) {
+    return res.status(404).json({
+      success: false,
+      error: "Club not found",
+    });
+  }
+    members.push(actualUserId);
+    await club.update({ members_raw: members.join(",") });
+
+    res.json({ success: true, enrollment });
+  } catch (err) {
+    console.error("Error enrolling in club:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete("/club-enrollments", async (req, res) => {
+  try {
+    const { user_id, club_id, club_type } = req.body;
+
+    const user = await db.User.findOne({ where: { usr_email: user_id } });
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    const deleted = await db.ClubEnrollment.destroy({
+      where: { user_id: user.usr_id, club_id, club_type },
+    });
+
+    if (!deleted) return res.status(404).json({ success: false, error: "Enrollment not found" });
+
+    const ClubModel = club_type === "morning" ? db.MorningClub : db.WednesdayClub;
+    const club = await ClubModel.findByPk(club_id);
+    const members = club.members_raw 
+      ? club.members_raw.split(",").filter(id => id != user.usr_id) 
+      : [];
+    await club.update({ members_raw: members.join(",") });
+
+    res.json({ success: true, message: "Removed from club" });
+  } catch (err) {
+    console.error("Error removing from club:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/user-clubs/:user_id", async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    
+    // Look up user by email
+    const user = await db.User.findOne({ where: { usr_email: user_id } });
+    if (!user) return res.json({ success: true, enrollments: [] });
+
+    const enrollments = await db.ClubEnrollment.findAll({
+      where: { user_id: user.usr_id },
+    });
+
+    res.json({ success: true, enrollments });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/club/:club_id/members", async (req, res) => {
+  try {
+    const { club_id } = req.params;
+    const club_type = req.query.type; 
+    if (!club_type) return res.status(400).json({ success: false, error: "Missing club type" });
+
+    const members = await db.ClubEnrollment.findAll({
+      where: { club_id, club_type },
+      include: [
+        { model: db.User, attributes: ["usr_first_name", "usr_last_name", "usr_email"] },
+      ],
+    });
+
+    res.json({ success: true, members });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
