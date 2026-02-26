@@ -10,6 +10,8 @@ export default function WednesdayClubManagement({ user }) {
   });
   const [selectedClub, setSelectedClub] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedClubs, setSelectedClubs] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState("");
 
   // Check if user is a teacher
   const isTeacher = user?.isTeacher || false;
@@ -104,6 +106,54 @@ export default function WednesdayClubManagement({ user }) {
       alert("Error deleting club");
     }
   };
+  const toggleClubSelection = (clubId) => {
+  setSelectedClubs((prev) =>
+    prev.includes(clubId)
+      ? prev.filter((id) => id !== clubId)
+      : [...prev, clubId]
+  );
+};
+
+  const handleBulkStatusUpdate = async () => {
+    const idsToUpdate = selectedClubs.filter(Boolean);
+
+    if (idsToUpdate.length === 0) {
+      alert("No valid clubs selected");
+      return;
+    }
+
+    try {
+      for (const id of idsToUpdate) {
+        const club = clubs.find((c) => c.dbId === id);
+        if (!club) continue;
+
+        const response = await fetch(`http://localhost:4000/wednesday-club/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ ...club, status: bulkStatus }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || `Failed to update club with ID ${id}`);
+        }
+      }
+
+      const refreshResponse = await fetch("http://localhost:4000/wednesday-club", {
+        credentials: "include",
+      });
+      const updatedClubs = await refreshResponse.json();
+      setClubs(updatedClubs);
+
+      setSelectedClubs([]);
+      setBulkStatus("");
+      alert("Status updated successfully!");
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
 
   return (
     <div>
@@ -131,15 +181,22 @@ export default function WednesdayClubManagement({ user }) {
 
           <label>Status:</label>
           <select
-            name="status"
-            value={filters.status}
-            onChange={handleFilterChange}
+          name="status"
+          value={filters.status}
+          onChange={handleFilterChange}
+        >
+          <option value="">-- Select --</option>
+          <option>Approved</option>
+          <option>Pending</option>
+          <option>Rejected</option>
+        </select>
+
+          <button
+            disabled={selectedClubs.length === 0 || !bulkStatus}
+            onClick={handleBulkStatusUpdate}
           >
-            <option value="">-- Select --</option>
-            <option>Approved</option>
-            <option>Pending</option>
-            <option>Rejected</option>
-          </select>
+            Submit
+          </button>
 
           <label>Advisor:</label>
           <select
@@ -203,26 +260,50 @@ export default function WednesdayClubManagement({ user }) {
 
       <div className="status-update">
         Update selected <strong>STATUS</strong> TO:
-        <select>
-          <option>-- Select --</option>
+        <select
+          value={bulkStatus}
+          onChange={(e) => setBulkStatus(e.target.value)}
+        >
+          <option value="">-- Select --</option>
           <option>Approved</option>
           <option>Pending</option>
           <option>Rejected</option>
         </select>
-        <button>Submit</button>
+
+        <button
+          disabled={selectedClubs.length === 0 || !bulkStatus}
+          onClick={handleBulkStatusUpdate}
+        >
+          Submit
+        </button>
       </div>
 
       <table>
         <thead>
           <tr>
-            <th></th>
+            <th>
+            <input
+              type="checkbox"
+              checked={
+                filteredClubs.length > 0 &&
+                filteredClubs.every((c) => selectedClubs.includes(c.dbId))
+              }
+              onChange={() => {
+                const dbIds = filteredClubs.map(c => c.dbId).filter(Boolean);
+                if (dbIds.every(id => selectedClubs.includes(id))) {
+                  setSelectedClubs([]);
+                } else {
+                  setSelectedClubs(dbIds);
+                }
+              }}
+            />
+          </th>
             <th>Club</th>
             <th>Leader Email</th>
             <th>Category</th>
             <th>Advisor</th>
             <th>Meeting Place</th>
             <th>5 members</th>
-            <th>Requested Advisor</th>
             <th>Status</th>
             <th>View/Edit</th>
             {isTeacher && <th>Delete</th>}
@@ -230,15 +311,21 @@ export default function WednesdayClubManagement({ user }) {
         </thead>
         <tbody>
           {filteredClubs.map((club, i) => (
-            <tr key={i}>
-              <td><div className="checkbox"></div></td>
+            <tr key={club.id}>
+              <td>
+            <input
+              type="checkbox"
+              checked={selectedClubs.includes(club.dbId)}
+              onChange={() => club.dbId && toggleClubSelection(club.dbId)}
+              disabled={!club.dbId}
+            />
+          </td>
               <td>{club.club}</td>
               <td>{club.email}</td>
               <td>{club.category}</td>
               <td>{club.advisor}</td>
               <td>{club.room}</td>
               <td>{club.members}</td>
-              <td>{club.req_advisor}</td>
               <td>{club.status}</td>
               <td>
                 <button onClick={() => { setSelectedClub(club); setIsModalOpen(true); }}>
@@ -278,64 +365,75 @@ export default function WednesdayClubManagement({ user }) {
             setSelectedClub(null);
           }}
           onSave={async (updatedData) => {
-            if (selectedClub.isNew) {
-              // For new clubs, save to backend
-              try {
-                const newClub = {
+          if (selectedClub.isNew) {
+            try {
+              const newClub = {
+                club: updatedData.clubName,
+                email: updatedData.email,
+                category: updatedData.category,
+                advisor: updatedData.advisor,
+                room: updatedData.room,
+                members: updatedData.members,
+                membersRaw: updatedData.members,
+                req_advisor: "",
+                status: updatedData.status || "Pending",
+              };
+
+              const response = await fetch("http://localhost:4000/wednesday-club", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(newClub),
+              });
+
+              if (response.ok) {
+                const refreshResponse = await fetch("http://localhost:4000/wednesday-club", { credentials: "include" });
+                const updatedClubs = await refreshResponse.json();
+                setClubs(updatedClubs);
+                alert("Club added successfully!");
+              } else {
+                const data = await response.json();
+                alert(data.error || "Failed to add club");
+              }
+            } catch (err) {
+              console.error("Error adding club:", err);
+              alert("Error adding club");
+            }
+          } else {
+            try {
+              const response = await fetch(`http://localhost:4000/wednesday-club/${selectedClub.dbId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
                   club: updatedData.clubName,
                   email: updatedData.email,
                   category: updatedData.category,
                   advisor: updatedData.advisor,
                   room: updatedData.room,
                   members: updatedData.members,
-                  membersRaw: updatedData.members,
-                  req_advisor: "",
                   status: updatedData.status,
-                };
+                }),
+              });
 
-                const response = await fetch("http://localhost:4000/wednesday-club", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  credentials: "include",
-                  body: JSON.stringify(newClub),
-                });
-
-                if (response.ok) {
-                  // Refresh the clubs list from the server
-                  const refreshResponse = await fetch("http://localhost:4000/wednesday-club", { credentials: "include" });
-                  const updatedClubs = await refreshResponse.json();
-                  setClubs(updatedClubs);
-                  alert("Club added successfully!");
-                } else {
-                  alert("Failed to add club");
-                }
-              } catch (err) {
-                console.error("Error adding club:", err);
-                alert("Error adding club");
+              if (response.ok) {
+                const refreshResponse = await fetch("http://localhost:4000/wednesday-club", { credentials: "include" });
+                const updatedClubs = await refreshResponse.json();
+                setClubs(updatedClubs);
+                alert("Club updated successfully!");
+              } else {
+                const data = await response.json();
+                alert(data.error || "Failed to update club");
               }
-            } else {
-              // For existing clubs, update in place
-              setClubs((prev) =>
-                prev.map((c) =>
-                  c.email === selectedClub.email
-                    ? {
-                        ...c,
-                        club: updatedData.clubName,
-                        email: updatedData.email,
-                        category: updatedData.category,
-                        advisor: updatedData.advisor,
-                        room: updatedData.room,
-                        members: updatedData.members.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
-                        membersRaw: updatedData.members,
-                        status: updatedData.status,
-                      }
-                    : c
-                )
-              );
+            } catch (err) {
+              console.error("Error updating Wednesday club:", err);
+              alert("Error updating club");
             }
-            setIsModalOpen(false);
-            setSelectedClub(null);
-          }}
+          }
+          setIsModalOpen(false);
+          setSelectedClub(null);
+        }}
+
         />
       )}
     </div>

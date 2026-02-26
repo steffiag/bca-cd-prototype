@@ -13,6 +13,11 @@ function App() {
   const [teacherAvailability, setTeacherAvailability] = useState([]);
   const [aiMerges, setAiMerges] = useState([]);
   const [selectedMerges, setSelectedMerges] = useState(new Set());
+  //misdemeanors tab
+  const [watchlist, setWatchlist] = useState([]);
+  const [selectedClub, setSelectedClub] = useState("");
+  const [selectedMisdemeanor, setSelectedMisdemeanor] = useState("");
+  const [notes, setNotes] = useState("");
 
 
   useEffect(() => {
@@ -136,6 +141,13 @@ const wednesdayClubs = [
             className={page === "teacher" ? "active" : ""}
           >
             Teacher Availability
+          </a>
+          <a
+            href="#"
+            onClick={() => setPage("misdemeanors")}
+            className={page === "misdemeanors" ? "active" : ""}
+          >
+            Misdemeanors
           </a>
         </>
       )}
@@ -389,6 +401,154 @@ const wednesdayClubs = [
             {page === "wednesday" && <WednesdayClubManagement user={user} />}
             {/* Teacher Availability */}
             {page === "teacher" && <TeacherAvailability teachers={teacherAvailability} />}
+                {page === "misdemeanors" && (
+      <>
+        <div className="page-title">Club Watchlist</div>
+
+        <p style={{ textAlign: "center", marginBottom: "25px", color: "#1e3a5f" }}>
+          Track clubs that require administrative monitoring.
+        </p>
+
+        {/* Add Form */}
+        <div
+          style={{
+            background: "#e7f0fb",
+            padding: "20px",
+            borderRadius: "12px",
+            marginBottom: "30px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            justifyContent: "center",
+          }}
+        >
+          <select
+            value={selectedClub}
+            onChange={(e) => setSelectedClub(e.target.value)}
+            style={{ padding: "8px", borderRadius: "6px" }}
+          >
+            <option value="">Select Club</option>
+            {[...morningClubs, ...wednesdayClubs].map((club, i) => (
+              <option key={i} value={club.name}>
+                {club.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedMisdemeanor}
+            onChange={(e) => setSelectedMisdemeanor(e.target.value)}
+            style={{ padding: "8px", borderRadius: "6px" }}
+          >
+            <option value="">Select Misdemeanor</option>
+            <option>Missed Meetings</option>
+            <option>Incomplete Paperwork</option>
+            <option>Budget Violations</option>
+            <option>Low Attendance</option>
+            <option>Code of Conduct Violation</option>
+          </select>
+
+          <input
+            type="text"
+            placeholder="Optional notes..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            style={{ padding: "8px", borderRadius: "6px" }}
+          />
+
+          <button
+            onClick={() => {
+              if (!selectedClub || !selectedMisdemeanor) {
+                alert("Please select a club and a misdemeanor.");
+                return;
+              }
+
+              const newEntry = {
+                id: Date.now(),
+                club: selectedClub,
+                misdemeanor: selectedMisdemeanor,
+                notes,
+                dateAdded: new Date().toLocaleDateString(),
+              };
+
+              setWatchlist([...watchlist, newEntry]);
+
+              // reset form
+              setSelectedClub("");
+              setSelectedMisdemeanor("");
+              setNotes("");
+            }}
+            style={{
+              background: "#4a90e2",
+              color: "white",
+              border: "none",
+              padding: "8px 14px",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            Add to Watchlist
+          </button>
+        </div>
+
+        {/* Watchlist Cards */}
+        {watchlist.length > 0 ? (
+          watchlist.map((entry) => (
+            <div
+              key={entry.id}
+              style={{
+                background: "#ffffff",
+                padding: "16px",
+                borderRadius: "10px",
+                marginBottom: "15px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <strong>{entry.club}</strong>
+                <div style={{ fontSize: "14px", color: "#555" }}>
+                  {entry.misdemeanor}
+                </div>
+                {entry.notes && (
+                  <div style={{ fontSize: "13px", color: "#777" }}>
+                    Notes: {entry.notes}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <span style={{ marginRight: "15px", fontSize: "13px" }}>
+                  {entry.dateAdded}
+                </span>
+                <button
+                  onClick={() =>
+                    setWatchlist(watchlist.filter((w) => w.id !== entry.id))
+                  }
+                  style={{
+                    background: "#d9534f",
+                    color: "white",
+                    border: "none",
+                    padding: "6px 10px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p style={{ textAlign: "center", color: "#666" }}>
+            No clubs currently on watchlist.
+          </p>
+        )}
+      </>
+    )}
           </>
         )}
         {portal === "student" && (

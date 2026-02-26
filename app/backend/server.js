@@ -105,57 +105,59 @@ app.delete("/wednesday-club/:identifier/:source", async (req, res) => {
   }
 });
 
-// GET endpoint
+async function syncWednesdayClubs() {
+  const responses = await getFormResponses(
+    "1a7PoNfDMwsEwFasPrA_6k8Fti4__E11xC32Eanchcc8" 
+  );
+
+  for (const resp of responses) {
+    const responseId = resp.responseId;
+
+    const exists = await db.WednesdayClub.findOne({ where: { form_response_id: responseId } });
+    if (exists) continue;
+
+    const answers = resp.answers;
+
+    await db.WednesdayClub.create({
+      form_response_id: responseId,
+      club_name: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
+      leader_email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
+      category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
+      advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
+      room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
+      members_raw: answers["1341f104"]?.textAnswers.answers[0].value || "",
+      status: "Pending",
+      source: "google_form",
+    });
+  }
+}
+
 app.get("/wednesday-club", async (req, res) => {
   try {
-    // Get clubs from Google Forms
-    const responses = await getFormResponses(
-      "1a7PoNfDMwsEwFasPrA_6k8Fti4__E11xC32Eanchcc8"
-    );
-    console.log(JSON.stringify(responses, null, 2));
-    
-    const formClubs = responses.map((resp) => {
-      const answers = resp.answers;
-      const membersRaw = answers["1341f104"]?.textAnswers.answers[0].value || "";
-      const hasFiveMembers = membersRaw.trim().toLowerCase() !== "n/a";
-      return {
-        club: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
-        email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
-        category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
-        advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
-        room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
-        members: hasFiveMembers ? "Yes" : "No",
-        membersRaw: membersRaw,                         
-        req_advisor: (answers["3489c0db"]?.textAnswers.answers[0].value || "") + "?",         
-        status: "Pending",
-        source: "google_form",
-      };
-    });
+    await syncWednesdayClubs();
 
-    // Get manually added clubs from database
     const dbClubs = await db.WednesdayClub.findAll();
-    const manualClubs = dbClubs.map((club) => ({
+
+    const clubs = dbClubs.map((club) => ({
+      dbId: club.id,
       club: club.club_name,
       email: club.leader_email,
       category: club.category,
       advisor: club.advisor,
       room: club.room,
-      members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
       membersRaw: club.members_raw,
-      req_advisor: "",
+      members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
       status: club.status,
-      source: "manual",
-      dbId: club.id,
+      source: club.source,
     }));
 
-    // Combine both sources
-    const allClubs = [...manualClubs, ...formClubs];
-    res.json(allClubs);
+    res.json(clubs);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch Wednesday club proposals" });
   }
 });
+
 
 // POST endpoint
 app.post("/wednesday-club", async (req, res) => {
@@ -217,36 +219,11 @@ app.delete("/morning-club/:identifier/:source", async (req, res) => {
 
 app.get("/morning-club", async (req, res) => {
   try {
-    // Get clubs from Google Forms
-    const responses = await getFormResponses(
-      "1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM"
-    );
-    console.log(JSON.stringify(responses, null, 2));
-    
-    const formClubs = responses.map((resp) => {
-      const answers = resp.answers;
-      const membersRaw = answers["1341f104"]?.textAnswers.answers[0].value || "";
-      const hasFiveMembers = membersRaw.trim().toLowerCase() !== "n/a";
-      return {
-        club: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
-        email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
-        category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
-        advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
-        room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
-        day: answers["33d1d5a4"]?.textAnswers.answers[0].value || "",
-        time: answers["21c77a77"]?.textAnswers.answers[0].value || "",
-        members: hasFiveMembers ? "Yes" : "No",
-        membersRaw: membersRaw,               
-        req_advisor: (answers["3489c0db"]?.textAnswers.answers[0].value || "") + "?",         
-        status: "Pending",
-        merge: "No",
-        source: "google_form",
-      };
-    });
+    await syncMorningClubs();
 
-    // Get manually added clubs from database
     const dbClubs = await db.MorningClub.findAll();
-    const manualClubs = dbClubs.map((club) => ({
+
+    const clubs = dbClubs.map((club) => ({
       club: club.club_name,
       email: club.leader_email,
       category: club.category,
@@ -256,21 +233,19 @@ app.get("/morning-club", async (req, res) => {
       time: club.time,
       members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
       membersRaw: club.members_raw,
-      req_advisor: "",
       status: club.status,
       merge: club.merge,
-      source: "manual",
-      dbId: club.id, // Keep track of database ID
+      source: club.source,
+      dbId: club.id,
     }));
 
-    // Combine both sources
-    const allClubs = [...manualClubs, ...formClubs];
-    res.json(allClubs);
+    res.json(clubs);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to fetch Morning club proposals" });
   }
 });
+
 
 app.post("/morning-club", async (req, res) => {
   try {
@@ -376,7 +351,103 @@ app.get("/openai-test", async (req, res) => {
   }
 });
 
+async function syncMorningClubs() {
+  const responses = await getFormResponses(
+    "1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM"
+  );
 
+  for (const resp of responses) {
+    const responseId = resp.responseId;
+
+    const exists = await db.MorningClub.findOne({ where: { form_response_id: responseId } });
+    if (exists) continue;
+
+    const answers = resp.answers;
+
+    await db.MorningClub.create({
+      form_response_id: responseId,
+      club_name: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
+      leader_email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
+      category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
+      advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
+      room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
+      day: answers["33d1d5a4"]?.textAnswers.answers[0].value || "",
+      time: answers["21c77a77"]?.textAnswers.answers[0].value || "",
+      members_raw: answers["1341f104"]?.textAnswers.answers[0].value || "",
+      status: "Pending",
+      merge: "No",
+      source: "google_form",
+    });
+  }
+}
+
+app.put("/morning-club/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      club,
+      email,
+      category,
+      advisor,
+      room,
+      day,
+      time,
+      members,
+      status,
+      merge,
+    } = req.body;
+
+    const clubToUpdate = await db.MorningClub.findByPk(id);
+    if (!clubToUpdate) {
+      return res.status(404).json({ error: "Club not found" });
+    }
+
+    await clubToUpdate.update({
+      club_name: club,
+      leader_email: email,
+      category,
+      advisor,
+      room,
+      day,
+      time,
+      members_raw: members,
+      status,
+      merge,
+    });
+
+    res.json({ success: true, club: clubToUpdate });
+  } catch (err) {
+    console.error("Error updating club:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/wednesday-club/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { club, email, category, advisor, room, members, status } = req.body;
+
+    const clubToUpdate = await db.WednesdayClub.findByPk(id);
+    if (!clubToUpdate) {
+      return res.status(404).json({ error: "Club not found" });
+    }
+
+    await clubToUpdate.update({
+      club_name: club,
+      leader_email: email,
+      category,
+      advisor,
+      room,
+      members_raw: members,
+      status,
+    });
+
+    res.json({ success: true, club: clubToUpdate });
+  } catch (err) {
+    console.error("Error updating Wednesday club:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 db.sequelize
   .sync()
@@ -483,3 +554,6 @@ app.post('/send-merge-emails', async (req, res) => {
   res.json({ status: 'All merges processed' });
 });
 
+
+
+;

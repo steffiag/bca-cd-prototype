@@ -41,6 +41,11 @@ export default (sequelize) => {
         type: DataTypes.STRING,
         defaultValue: "manual", // "manual" or "google_form"
       },
+      form_response_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+      },
     },
     {
       tableName: "wednesday_clubs",

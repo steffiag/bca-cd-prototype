@@ -10,6 +10,8 @@ export default function MorningClubManagement({ setPage, user }) {
   });
   const [selectedClub, setSelectedClub] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedClubs, setSelectedClubs] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState("");
 
   // Check if user is a teacher
   const isTeacher = user?.isTeacher || false;
@@ -98,6 +100,51 @@ export default function MorningClubManagement({ setPage, user }) {
   }
 };
 
+const toggleClubSelection = (clubId) => {
+  setSelectedClubs((prev) =>
+    prev.includes(clubId)
+      ? prev.filter((id) => id !== clubId)
+      : [...prev, clubId]
+  );
+};
+
+  const handleBulkStatusUpdate = async () => {
+    const idsToUpdate = selectedClubs.filter(Boolean);
+
+    if (idsToUpdate.length === 0) {
+      alert("No valid clubs selected");
+      return;
+    }
+
+    try {
+      for (const id of idsToUpdate) {
+        const club = clubs.find(c => c.dbId === id);
+        if (!club) continue;
+
+        const response = await fetch(`http://localhost:4000/morning-club/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ ...club, status: bulkStatus }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || `Failed to update club with ID ${id}`);
+        }
+      }
+
+      const refreshResponse = await fetch("http://localhost:4000/morning-club", { credentials: "include" });
+      const updatedClubs = await refreshResponse.json();
+      setClubs(updatedClubs);
+      setSelectedClubs([]);
+      setBulkStatus("");
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+
   return (
     <div>
       <div className="page-title">Morning Club Management</div>
@@ -119,12 +166,23 @@ export default function MorningClubManagement({ setPage, user }) {
           </select>
 
           <label>Status:</label>
-          <select name="status" value={filters.status} onChange={handleFilterChange}>
-            <option value="">-- Select --</option>
-            <option>Approved</option>
-            <option>Pending</option>
-            <option>Rejected</option>
-          </select>
+          <select
+          name="status"
+          value={filters.status}
+          onChange={handleFilterChange}
+        >
+          <option value="">-- Select --</option>
+          <option>Approved</option>
+          <option>Pending</option>
+          <option>Rejected</option>
+        </select>
+
+          <button
+            disabled={selectedClubs.length === 0 || !bulkStatus}
+            onClick={handleBulkStatusUpdate}
+          >
+            Submit
+          </button>
 
           <label>Advisor:</label>
           <select name="advisor" value={filters.advisor} onChange={handleFilterChange}>
@@ -185,19 +243,44 @@ export default function MorningClubManagement({ setPage, user }) {
 
       <div className="status-update">
         Update selected <strong>STATUS</strong> TO:
-        <select>
-          <option>-- Select --</option>
+        <select
+          value={bulkStatus}
+          onChange={(e) => setBulkStatus(e.target.value)}
+        >
+          <option value="">-- Select --</option>
           <option>Approved</option>
           <option>Pending</option>
           <option>Rejected</option>
         </select>
-        <button>Submit</button>
+
+        <button
+          disabled={selectedClubs.length === 0 || !bulkStatus}
+          onClick={handleBulkStatusUpdate}
+        >
+          Submit
+        </button>
       </div>
 
       <table>
         <thead>
           <tr>
-            <th></th>
+            <th>
+            <input
+              type="checkbox"
+              checked={
+                filteredClubs.length > 0 &&
+                filteredClubs.every((c) => selectedClubs.includes(c.dbId))
+              }
+              onChange={() => {
+                const dbIds = filteredClubs.map(c => c.dbId).filter(Boolean);
+                if (dbIds.every(id => selectedClubs.includes(id))) {
+                  setSelectedClubs([]);
+                } else {
+                  setSelectedClubs(dbIds);
+                }
+              }}
+            />
+          </th>
             <th>Club</th>
             <th>Leader Email</th>
             <th>Category</th>
@@ -206,7 +289,6 @@ export default function MorningClubManagement({ setPage, user }) {
             <th>Day</th>
             <th>Time</th>
             <th>5 members</th>
-            <th>Requested Advisor</th>
             <th>Status</th>
             <th>View/Edit</th>
             <th>Merge?</th>
@@ -215,8 +297,15 @@ export default function MorningClubManagement({ setPage, user }) {
         </thead>
         <tbody>
           {filteredClubs.map((club, i) => (
-            <tr key={i}>
-              <td><div className="checkbox"></div></td>
+            <tr key={club.id}>
+              <td>
+            <input
+              type="checkbox"
+              checked={selectedClubs.includes(club.dbId)}
+              onChange={() => club.dbId && toggleClubSelection(club.dbId)}
+              disabled={!club.dbId}
+            />
+          </td>
               <td>{club.club}</td>
               <td>{club.email}</td>
               <td>{club.category}</td>
@@ -225,7 +314,6 @@ export default function MorningClubManagement({ setPage, user }) {
               <td>{club.day}</td>
               <td>{club.time}</td>
               <td>{club.members}</td>
-              <td>{club.req_advisor}</td>
               <td>{club.status}</td>
               <td>
                 <button onClick={() => { setSelectedClub(club); setIsModalOpen(true); }}>
@@ -305,28 +393,40 @@ export default function MorningClubManagement({ setPage, user }) {
                 alert("Error adding club");
               }
             } else {
-              // For existing clubs, update in place
-              setClubs((prev) =>
-                prev.map((c) =>
-                  c.email === selectedClub.email
-                    ? {
-                        ...c,
-                        club: updatedData.clubName,
-                        email: updatedData.email,
-                        category: updatedData.category,
-                        advisor: updatedData.advisor,
-                        room: updatedData.room,
-                        day: updatedData.day,
-                        time: updatedData.time,
-                        members: updatedData.members.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
-                        membersRaw: updatedData.members,
-                        status: updatedData.status,
-                        merge: updatedData.merge,
-                      }
-                    : c
-                )
-              );
+              try {
+                const response = await fetch(`http://localhost:4000/morning-club/${selectedClub.dbId}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    club: updatedData.clubName,
+                    email: updatedData.email,
+                    category: updatedData.category,
+                    advisor: updatedData.advisor,
+                    room: updatedData.room,
+                    day: updatedData.day,
+                    time: updatedData.time,
+                    members: updatedData.members,
+                    status: updatedData.status,
+                    merge: updatedData.merge,
+                  }),
+                });
+
+                if (response.ok) {
+                  // Refresh from backend to get latest data
+                  const refreshResponse = await fetch("http://localhost:4000/morning-club", { credentials: "include" });
+                  const updatedClubs = await refreshResponse.json();
+                  setClubs(updatedClubs);
+                } else {
+                  const data = await response.json();
+                  alert(data.error || "Failed to update club");
+                }
+              } catch (err) {
+                console.error("Error updating club:", err);
+                alert("Error updating club");
+              }
             }
+
             setIsModalOpen(false);
             setSelectedClub(null);
           }}
