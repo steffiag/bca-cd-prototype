@@ -154,31 +154,7 @@ function App() {
           </a>
         </>
       )}
-        {portal === "admin" && (
-          <>
-            <a
-              href="#"
-              onClick={() => setPage("morning")}
-              className={page.startsWith("morning") ? "active" : ""}
-            >
-              Morning Club Management
-            </a>
-            <a
-              href="#"
-              onClick={() => setPage("wednesday")}
-              className={page === "wednesday" ? "active" : ""}
-            >
-              Wednesday Club Management
-            </a>
-            <a
-              href="#"
-              onClick={() => setPage("teacher")}
-              className={page === "teacher" ? "active" : ""}
-            >
-              Teacher Availability
-            </a>
-          </>
-        )}
+
 
         {portal === "student" && (
           <>
@@ -424,70 +400,13 @@ function App() {
   ) : (
     <p style={{ textAlign: "center", color: "#666" }}>No AI merge suggestions yet.</p>
   )}
-                {aiMerges.length > 0 ? (
-                  aiMerges.map((group, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        background: "#e7f0fb",
-                        borderRadius: "12px",
-                        padding: "20px",
-                        marginBottom: "25px",
-                        boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
-                      }}
-                    >
-                      <div style={{ fontWeight: "600", marginBottom: "15px", color: "#1e3a5f" }}>
-                        AI Suggested Merge:
-                      </div>
-
-                      {[{name: group.clubA, email: group.emailA}, {name: group.clubB, email: group.emailB}].map((club, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            background: "#ffffff",
-                            padding: "12px 16px",
-                            borderRadius: "8px",
-                            marginBottom: "10px",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            <button
-                              style={{
-                                width: "32px",
-                                height: "32px",
-                                borderRadius: "6px",
-                                border: "none",
-                                color: "white",
-                                fontSize: "16px",
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                              title="Remove from merge group"
-                            >
-                              🗑️
-                            </button>
-                            <strong>{club.name}</strong>
-                          </div>
-                          <span>{club.email}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))
-                ) : (
-                  <p style={{ textAlign: "center", color: "#666" }}>No AI merge suggestions yet.</p>
-                )}
+                
               </>
             )}
 
             {/* Wednesday Club Management */}
             {page === "wednesday" && <WednesdayClubManagement user={user} />}
             {/* Teacher Availability */}
-            {page === "teacher" && <TeacherAvailability teachers={teacherAvailability} />}
                 {page === "misdemeanors" && (
       <>
         <div className="page-title">Club Watchlist</div>
