@@ -441,3 +441,11 @@ th {
   background: #5a8fc0;
   color: white;
 }
+
+.join-btn,
+.leave-btn {
+  width: fit-content;
+  padding: 6px 14px;
+  align-self: center;
+  display: inline-block;
+}

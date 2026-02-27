@@ -25,8 +25,25 @@ export default function setupAuth(app) {
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         callbackURL: "http://localhost:4000/auth/google/callback",
       },
-      (accessToken, refreshToken, profile, done) => {
-        return done(null, profile);
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const email = profile.emails[0].value;
+          const nameParts = profile.displayName.split(" ");
+
+          let dbUser = await db.User.findOne({ where: { usr_email: email } });
+          if (!dbUser) {
+            dbUser = await db.User.create({
+              usr_email: email,
+              usr_first_name: nameParts[0] || "",
+              usr_last_name: nameParts[1] || "",
+              usr_type_cde: "STD",
+              usr_active: true,
+            });
+          }
+          return done(null, profile);
+        } catch (err) {
+          return done(err, null);
+        }
       }
     )
   );
@@ -55,6 +72,7 @@ export default function setupAuth(app) {
     console.log("Found user:", dbUser); // Debug log
 
     res.json({
+      id: dbUser?.usr_id, 
       displayName: req.user.displayName,
       email,
       userType: dbUser?.usr_type_cde || "STD",

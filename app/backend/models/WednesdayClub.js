@@ -46,6 +46,14 @@ export default (sequelize) => {
         allowNull: true,
         unique: true,
       },
+      mission: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      photo_file_id: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
     },
     {
       tableName: "wednesday_clubs",

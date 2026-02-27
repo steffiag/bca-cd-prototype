@@ -7,6 +7,10 @@ import { getFormResponses } from "./google-forms.js";
 import OpenAI from "openai";
 import nodemailer from "nodemailer";
 import stringSimilarity from 'string-similarity';
+import { downloadImage } from "./download-images.js";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -16,7 +20,6 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-
 //calculates similarity
 function cosineSimilarity(a, b) {
   const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
@@ -24,7 +27,6 @@ function cosineSimilarity(a, b) {
   const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
   return dot / (magA * magB);
 }
-
 
 dotenv.config();
 
@@ -38,36 +40,84 @@ const openai = new OpenAI({
 
 
 console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
-console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET); // testing if form.credentials.json is working
+console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
 
 const app = express();
-const PORT = 4000;
-
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
 
 setupAuth(app);
 
+const upload = multer({ storage: multer.memoryStorage() });
+
+app.post("/upload-club-image/:clubName", upload.single("image"), (req, res) => {
+  try {
+    const safeName = req.params.clubName;
+    const filePath = path.join(process.cwd(), "../public/images", `${safeName}.png`);
+    fs.writeFileSync(filePath, req.file.buffer);
+    res.json({ success: true, filename: `${safeName}.png` });
+  } catch (err) {
+    console.error("Image upload error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+const PORT = 4000;
+
 app.get("/", (req, res) => {
   res.send("BCA Club Dashboard backend is running!");
 });
 
+// ============================================
+// TEACHER AVAILABILITY ENDPOINTS
+// ============================================
 
+// Sync teachers from Google Forms
+async function syncTeachers() {
+  const responses = await getFormResponses("1E9oTtJjWJhoCKBT69Vx_nEj664jMfQn0cvgWQoF4vyY");
+  
+  for (const resp of responses) {
+    const responseId = resp.responseId;
+    const exists = await db.Teacher.findOne({ where: { form_response_id: responseId } });
+    if (exists) continue;
+
+    const answers = resp.answers;
+    await db.Teacher.create({
+      form_response_id: responseId,
+      name: answers["2f647977"]?.textAnswers.answers[0].value || "",
+      email: answers["53dcbc10"]?.textAnswers.answers[0].value || "",
+      room: answers["38b6b35f"]?.textAnswers.answers[0].value || "",
+      available: answers["0f394b75"]?.textAnswers.answers[0].value === "Yes",
+      department: answers["66644a8c"]?.textAnswers.answers[0].value || "",
+      assigned_club: answers["3819750e"]?.textAnswers.answers[0].value || null,
+      source: "google_form",
+    });
+  }
+}
+
+// GET all teachers
 app.get("/teacher-availability", async (req, res) => {
   try {
-    const responses = await getFormResponses("1E9oTtJjWJhoCKBT69Vx_nEj664jMfQn0cvgWQoF4vyY");
-    console.log(JSON.stringify(responses, null, 2));
-    const teachers = responses.map((resp) => {
-      const answers = resp.answers;
-      return {
-        name: answers["2f647977"]?.textAnswers.answers[0].value || "",
-        email: answers["53dcbc10"]?.textAnswers.answers[0].value || "",
-        room: answers["38b6b35f"]?.textAnswers.answers[0].value || "",
-        available: answers["0f394b75"]?.textAnswers.answers[0].value || "No",
-        department: answers["66644a8c"]?.textAnswers.answers[0].value || "",
-        assigned: answers["3819750e"]?.textAnswers.answers[0].value || "",
-      };
+    await syncTeachers();
+
+    const dbTeachers = await db.Teacher.findAll();
+
+    // Get all approved clubs for the dropdown
+    const wednesdayClubs = await db.WednesdayClub.findAll({
+      where: { status: "Approved" },
     });
+
+    const teachers = dbTeachers.map((teacher) => ({
+      id: teacher.id,
+      name: teacher.name,
+      email: teacher.email,
+      room: teacher.room,
+      available: teacher.available ? "Yes" : "No",
+      availableBool: teacher.available,
+      department: teacher.department,
+      assigned: teacher.assigned_club,
+      source: teacher.source,
+      availableClubs: wednesdayClubs.map((c) => c.club_name),
+    }));
 
     res.json(teachers);
   } catch (err) {
@@ -76,7 +126,105 @@ app.get("/teacher-availability", async (req, res) => {
   }
 });
 
-// DELETE endpoint - add this BEFORE the GET endpoint
+// POST new teacher (manual entry)
+app.post("/teacher-availability", async (req, res) => {
+  try {
+    const { name, email, room, available, department, assigned_club } = req.body;
+    
+    const newTeacher = await db.Teacher.create({
+      name,
+      email,
+      room,
+      available: available === "Yes" || available === true,
+      department,
+      assigned_club: assigned_club || null,
+      source: "manual",
+    });
+
+    res.json({ success: true, teacher: newTeacher });
+  } catch (err) {
+    console.error("Error creating teacher:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT update teacher
+app.put("/teacher-availability/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, room, available, department, assigned_club } = req.body;
+
+    const teacher = await db.Teacher.findByPk(id);
+    if (!teacher) {
+      return res.status(404).json({ error: "Teacher not found" });
+    }
+
+    await teacher.update({
+      name,
+      email,
+      room,
+      available: available === "Yes" || available === true,
+      department,
+      assigned_club: assigned_club || null,
+    });
+
+    res.json({ success: true, teacher });
+  } catch (err) {
+    console.error("Error updating teacher:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT update teacher availability (for teachers confirming themselves)
+app.put("/teacher-availability/:id/confirm", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { available } = req.body;
+
+    const teacher = await db.Teacher.findByPk(id);
+    if (!teacher) {
+      return res.status(404).json({ error: "Teacher not found" });
+    }
+
+    await teacher.update({
+      available: available === true || available === "Yes",
+    });
+
+    res.json({ success: true, teacher });
+  } catch (err) {
+    console.error("Error confirming availability:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE teacher
+app.delete("/teacher-availability/:id/:source", async (req, res) => {
+  try {
+    const { id, source } = req.params;
+    
+    if (source === "google_form") {
+      return res.status(400).json({ 
+        error: "Cannot delete teachers from Google Forms. These must be managed through Google Forms." 
+      });
+    }
+
+    const deleted = await db.Teacher.destroy({ where: { id: parseInt(id) } });
+
+    if (deleted) {
+      res.json({ success: true, message: "Teacher deleted" });
+    } else {
+      res.status(404).json({ error: "Teacher not found" });
+    }
+  } catch (err) {
+    console.error("Error deleting teacher:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// EXISTING ENDPOINTS (Wednesday Clubs, etc.)
+// ============================================
+
 app.delete("/wednesday-club/:identifier/:source", async (req, res) => {
   try {
     const { identifier, source } = req.params;
@@ -107,28 +255,58 @@ app.delete("/wednesday-club/:identifier/:source", async (req, res) => {
 
 async function syncWednesdayClubs() {
   const responses = await getFormResponses(
-    "1a7PoNfDMwsEwFasPrA_6k8Fti4__E11xC32Eanchcc8" 
+    "1a7PoNfDMwsEwFasPrA_6k8Fti4__E11xC32Eanchcc8"
   );
-
   for (const resp of responses) {
     const responseId = resp.responseId;
-
-    const exists = await db.WednesdayClub.findOne({ where: { form_response_id: responseId } });
-    if (exists) continue;
-
+    const exists = await db.WednesdayClub.findOne({
+      where: { form_response_id: responseId },
+    });
     const answers = resp.answers;
+    if (exists) {
+      const formMission =
+        answers["5967c5af"]?.textAnswers?.answers?.[0]?.value;
+      const formPhoto =
+        answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId;
 
-    await db.WednesdayClub.create({
+      const updates = {};
+      if (formPhoto) updates.photo_file_id = formPhoto;
+      if (formMission && !exists.mission) updates.mission = formMission;
+
+      if (Object.keys(updates).length > 0) {
+        await exists.update(updates);
+      }
+      continue;
+    }
+    const newClub = await db.WednesdayClub.create({
       form_response_id: responseId,
-      club_name: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
-      leader_email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
-      category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
-      advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
-      room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
-      members_raw: answers["1341f104"]?.textAnswers.answers[0].value || "",
+      club_name:
+        answers["58d95ef3"]?.textAnswers?.answers?.[0]?.value || "",
+      mission:
+        answers["5967c5af"]?.textAnswers?.answers?.[0]?.value || "",
+      leader_email:
+        answers["6bdbdc40"]?.textAnswers?.answers?.[0]?.value || "",
+      category:
+        answers["58e9aaf9"]?.textAnswers?.answers?.[0]?.value || "",
+      advisor:
+        answers["5573285b"]?.textAnswers?.answers?.[0]?.value || "",
+      room:
+        answers["0478ecea"]?.textAnswers?.answers?.[0]?.value || "",
+      day:
+        answers["33d1d5a4"]?.textAnswers?.answers?.[0]?.value || "",
+      time:
+        answers["21c77a77"]?.textAnswers?.answers?.[0]?.value || "",
+      members_raw:
+        answers["1341f104"]?.textAnswers?.answers?.[0]?.value || "",
+      photo_file_id:
+        answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
       status: "Pending",
+      merge: "No",
       source: "google_form",
     });
+    if (newClub.photo_file_id) {
+      downloadImage(newClub.photo_file_id, newClub.club_name);
+    }
   }
 }
 
@@ -149,6 +327,7 @@ app.get("/wednesday-club", async (req, res) => {
       members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
       status: club.status,
       source: club.source,
+      mission: club.mission || "",
     }));
 
     res.json(clubs);
@@ -158,11 +337,9 @@ app.get("/wednesday-club", async (req, res) => {
   }
 });
 
-
-// POST endpoint
 app.post("/wednesday-club", async (req, res) => {
   try {
-    const { club, email, category, advisor, room, members, status } = req.body;
+    const { club, email, category, advisor, room, members, status, mission } = req.body;
     
     const newClub = await db.WednesdayClub.create({
       club_name: club,
@@ -172,6 +349,7 @@ app.post("/wednesday-club", async (req, res) => {
       room: room,
       members_raw: members,
       status: status || "Pending",
+      mission: mission || "",
       source: "manual",
     });
 
@@ -197,7 +375,6 @@ app.delete("/morning-club/:identifier/:source", async (req, res) => {
 
     console.log("Attempting to delete club with identifier:", identifier);
     
-    // Try to delete by ID first (if identifier is a number), otherwise by email
     const whereClause = isNaN(identifier) 
       ? { leader_email: identifier }
       : { id: parseInt(identifier) };
@@ -224,6 +401,7 @@ app.get("/morning-club", async (req, res) => {
     const dbClubs = await db.MorningClub.findAll();
 
     const clubs = dbClubs.map((club) => ({
+      dbId: club.id,
       club: club.club_name,
       email: club.leader_email,
       category: club.category,
@@ -231,12 +409,12 @@ app.get("/morning-club", async (req, res) => {
       room: club.room,
       day: club.day,
       time: club.time,
-      members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
       membersRaw: club.members_raw,
+      members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
       status: club.status,
       merge: club.merge,
       source: club.source,
-      dbId: club.id,
+      mission: club.mission || "",
     }));
 
     res.json(clubs);
@@ -246,10 +424,9 @@ app.get("/morning-club", async (req, res) => {
   }
 });
 
-
 app.post("/morning-club", async (req, res) => {
   try {
-    const { club, email, category, advisor, room, day, time, members, status, merge } = req.body;
+    const { club, email, category, advisor, room, day, time, members, status, merge, mission } = req.body;
     
     const newClub = await db.MorningClub.create({
       club_name: club,
@@ -262,19 +439,74 @@ app.post("/morning-club", async (req, res) => {
       members_raw: members,
       status: status || "Pending",
       merge: merge || "No",
+      mission: mission || "",
       source: "manual",
     });
 
     console.log("New club created:", newClub);
     res.json({ success: true, club: newClub });
   } catch (err) {
-    console.error("Error saving club:", err);
+    console.error("Error saving Morning club:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
+app.get("/approved-morning-clubs", async (req, res) => {
+  try {
+    await syncMorningClubs();
 
-// Route to fetch morning clubs for AI merge
+    const clubs = await db.MorningClub.findAll({
+      where: { status: "Approved" },
+      attributes: [
+        "id",
+        "club_name",
+        "mission",
+        "photo_file_id",
+      ],
+    });
+
+    res.json(
+      clubs.map(c => ({
+        dbId: c.id, 
+        club: c.club_name,
+        mission: c.mission,
+        photo: c.photo_file_id,
+      }))
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch approved morning clubs" });
+  }
+});
+
+app.get("/approved-wednesday-clubs", async (req, res) => {
+  try {
+    await syncWednesdayClubs();
+
+    const clubs = await db.WednesdayClub.findAll({
+      where: { status: "Approved" },
+      attributes: [
+        "id",
+        "club_name",
+        "mission",
+        "photo_file_id",
+      ],
+    });
+
+    res.json(
+      clubs.map(c => ({
+        dbId: c.id, 
+        club: c.club_name,
+        mission: c.mission,
+        photo: c.photo_file_id,
+      }))
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch approved Wednesday clubs" });
+  }
+});
+
 app.get("/ai-merges", async (req, res) => {
   try {
     // Get Google Form clubs
@@ -320,8 +552,6 @@ app.get("/ai-merges", async (req, res) => {
   }
 });
 
-
-
 app.get("/openai-test", async (req, res) => {
   try {
     console.log("OpenAI test endpoint hit");
@@ -352,32 +582,42 @@ app.get("/openai-test", async (req, res) => {
 });
 
 async function syncMorningClubs() {
-  const responses = await getFormResponses(
-    "1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM"
-  );
+  const responses = await getFormResponses("1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM");
 
   for (const resp of responses) {
     const responseId = resp.responseId;
-
     const exists = await db.MorningClub.findOne({ where: { form_response_id: responseId } });
-    if (exists) continue;
-
     const answers = resp.answers;
 
-    await db.MorningClub.create({
+    if (exists) {
+      const formMission = answers["76676db8"]?.textAnswers?.answers?.[0]?.value;
+      const formPhoto = answers["2cbc5d6b"]?.fileUploadAnswers?.answers?.[0]?.fileId;
+
+      const updates = {};
+      if (formPhoto) updates.photo_file_id = formPhoto;
+      if (formMission && !exists.mission) updates.mission = formMission;
+      if (Object.keys(updates).length > 0) await exists.update(updates);
+      continue;
+    }
+
+    const newClub = await db.MorningClub.create({
       form_response_id: responseId,
-      club_name: answers["58d95ef3"]?.textAnswers.answers[0].value || "",
-      leader_email: answers["6bdbdc40"]?.textAnswers.answers[0].value || "",
-      category: answers["58e9aaf9"]?.textAnswers.answers[0].value || "",
-      advisor: answers["5573285b"]?.textAnswers.answers[0].value || "",
-      room: answers["0478ecea"]?.textAnswers.answers[0].value || "",
-      day: answers["33d1d5a4"]?.textAnswers.answers[0].value || "",
-      time: answers["21c77a77"]?.textAnswers.answers[0].value || "",
-      members_raw: answers["1341f104"]?.textAnswers.answers[0].value || "",
+      club_name: answers["58d95ef3"]?.textAnswers?.answers?.[0]?.value || "",
+      mission: answers["76676db8"]?.textAnswers?.answers?.[0]?.value || "",
+      leader_email: answers["6bdbdc40"]?.textAnswers?.answers?.[0]?.value || "",
+      category: answers["58e9aaf9"]?.textAnswers?.answers?.[0]?.value || "",
+      advisor: answers["5573285b"]?.textAnswers?.answers?.[0]?.value || "",
+      room: answers["0478ecea"]?.textAnswers?.answers?.[0]?.value || "",
+      day: answers["33d1d5a4"]?.textAnswers?.answers?.[0]?.value || "",
+      time: answers["21c77a77"]?.textAnswers?.answers?.[0]?.value || "",
+      members_raw: answers["1341f104"]?.textAnswers?.answers?.[0]?.value || "",
+      photo_file_id: answers["2cbc5d6b"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
       status: "Pending",
       merge: "No",
       source: "google_form",
     });
+
+    downloadImage(newClub.photo_file_id, newClub.club_name);
   }
 }
 
@@ -395,6 +635,7 @@ app.put("/morning-club/:id", async (req, res) => {
       members,
       status,
       merge,
+      mission,
     } = req.body;
 
     const clubToUpdate = await db.MorningClub.findByPk(id);
@@ -413,6 +654,7 @@ app.put("/morning-club/:id", async (req, res) => {
       members_raw: members,
       status,
       merge,
+      mission,
     });
 
     res.json({ success: true, club: clubToUpdate });
@@ -425,7 +667,7 @@ app.put("/morning-club/:id", async (req, res) => {
 app.put("/wednesday-club/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { club, email, category, advisor, room, members, status } = req.body;
+    const { club, email, category, advisor, room, members, status, mission } = req.body;
 
     const clubToUpdate = await db.WednesdayClub.findByPk(id);
     if (!clubToUpdate) {
@@ -440,6 +682,7 @@ app.put("/wednesday-club/:id", async (req, res) => {
       room,
       members_raw: members,
       status,
+      mission,
     });
 
     res.json({ success: true, club: clubToUpdate });
@@ -449,23 +692,11 @@ app.put("/wednesday-club/:id", async (req, res) => {
   }
 });
 
-db.sequelize
-  .sync()
-  .then(() => {
-    console.log("Sequelize synced");
-    app.listen(PORT, () =>
-      console.log(`Server running on http://localhost:${PORT}`)
-    );
-  })
-  .catch(console.error);
-
-//ai merge suggestions
 app.post("/assess-similarity", async (req, res) => {
   try {
     const morningClubs = req.body;
     console.log("Incoming clubs for AI similarity:", req.body);
 
-    
     const texts = morningClubs.map(c => `${c.club}: ${c.mission}`);
     console.log("Texts sent to OpenAI:", texts);
     const response = await openai.embeddings.create({
@@ -476,7 +707,6 @@ app.post("/assess-similarity", async (req, res) => {
     const embeddings = response.data.map(d => d.embedding);
     const suggestions = [];
 
-    //compares each pair of clubs
     for (let i = 0; i < morningClubs.length; i++) {
       for (let j = i + 1; j < morningClubs.length; j++) {
         const score = cosineSimilarity(embeddings[i], embeddings[j]);
@@ -505,6 +735,10 @@ app.post("/assess-similarity", async (req, res) => {
   }
 });
 
+// Signup Functionality
+app.post("/club-enrollments", async (req, res) => {
+  try {
+    const { user_id, club_id, club_type } = req.body;
 
 // Send merge emails to club admins
 app.post('/send-merge-emails', async (req, res) => {
@@ -557,3 +791,126 @@ app.post('/send-merge-emails', async (req, res) => {
 
 
 ;
+    if (!user_id || !club_id || !club_type) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
+
+    // Look up the actual user record by email
+    const user = await db.User.findOne({ where: { usr_email: user_id } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+    const actualUserId = user.usr_id;
+
+    if (club_type === "wednesday") {
+      const existing = await db.ClubEnrollment.findOne({
+        where: { user_id: actualUserId, club_type: "wednesday" },
+      });
+      if (existing) {
+        return res.status(400).json({ success: false, error: "Already enrolled in a Wednesday club" });
+      }
+    }
+
+    const already = await db.ClubEnrollment.findOne({
+      where: { user_id: actualUserId, club_id, club_type },
+    });
+    if (already) {
+      return res.status(400).json({ success: false, error: "Already enrolled in this club" });
+    }
+
+    const enrollment = await db.ClubEnrollment.create({ user_id: actualUserId, club_id, club_type });
+
+    const ClubModel = club_type === "morning" ? db.MorningClub : db.WednesdayClub;
+    const club = await ClubModel.findByPk(club_id);
+    const members = club.members_raw ? club.members_raw.split(",") : [];
+    if (!club) {
+    return res.status(404).json({
+      success: false,
+      error: "Club not found",
+    });
+  }
+    members.push(actualUserId);
+    await club.update({ members_raw: members.join(",") });
+
+    res.json({ success: true, enrollment });
+  } catch (err) {
+    console.error("Error enrolling in club:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete("/club-enrollments", async (req, res) => {
+  try {
+    const { user_id, club_id, club_type } = req.body;
+
+    const user = await db.User.findOne({ where: { usr_email: user_id } });
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+
+    const deleted = await db.ClubEnrollment.destroy({
+      where: { user_id: user.usr_id, club_id, club_type },
+    });
+
+    if (!deleted) return res.status(404).json({ success: false, error: "Enrollment not found" });
+
+    const ClubModel = club_type === "morning" ? db.MorningClub : db.WednesdayClub;
+    const club = await ClubModel.findByPk(club_id);
+    const members = club.members_raw 
+      ? club.members_raw.split(",").filter(id => id != user.usr_id) 
+      : [];
+    await club.update({ members_raw: members.join(",") });
+
+    res.json({ success: true, message: "Removed from club" });
+  } catch (err) {
+    console.error("Error removing from club:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/user-clubs/:user_id", async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    
+    // Look up user by email
+    const user = await db.User.findOne({ where: { usr_email: user_id } });
+    if (!user) return res.json({ success: true, enrollments: [] });
+
+    const enrollments = await db.ClubEnrollment.findAll({
+      where: { user_id: user.usr_id },
+    });
+
+    res.json({ success: true, enrollments });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/club/:club_id/members", async (req, res) => {
+  try {
+    const { club_id } = req.params;
+    const club_type = req.query.type; 
+    if (!club_type) return res.status(400).json({ success: false, error: "Missing club type" });
+
+    const members = await db.ClubEnrollment.findAll({
+      where: { club_id, club_type },
+      include: [
+        { model: db.User, attributes: ["usr_first_name", "usr_last_name", "usr_email"] },
+      ],
+    });
+
+    res.json({ success: true, members });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+db.sequelize
+  .sync()
+  .then(() => {
+    console.log("Sequelize synced");
+    app.listen(PORT, () =>
+      console.log(`Server running on http://localhost:${PORT}`)
+    );
+  })
+  .catch(console.error);
