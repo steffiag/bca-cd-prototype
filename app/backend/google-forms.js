@@ -2,7 +2,7 @@ import { google } from "googleapis";
 import path from "path";
 import "dotenv/config";
 
-const keyFileJson = process.env.GOOGLE_CREDS_JSON;
+const keyFileJson = JSON.parse(process.env.GOOGLE_CREDS_JSON);
 
 const auth = new google.auth.GoogleAuth({
   credentials: keyFileJson,
