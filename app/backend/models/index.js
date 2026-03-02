@@ -5,6 +5,7 @@ import MorningClubModel from "./MorningClub.js";
 import WednesdayClubModel from "./WednesdayClub.js";
 import TeacherModel from "./Teacher.js";
 import ClubEnrollmentModel from "./ClubEnrollment.js";
+import MisdemeanorModel from "./Misdemeanor.js";
 import dotenv from "dotenv";
 
 dotenv.config();
