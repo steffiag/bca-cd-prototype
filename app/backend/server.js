@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import setupAuth from "./auth.js";
 import db from "./models/index.js";
+const { Misdemeanor } = db;
 import { getFormResponses } from "./google-forms.js";
 import OpenAI from "openai";
 import nodemailer from "nodemailer";
@@ -45,6 +46,41 @@ console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
 const app = express();
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
+
+// GET all misdemeanors
+app.get("/misdemeanors", async (req, res) => {
+  try {
+    const misdemeanors = await Misdemeanor.findAll();
+    res.json(misdemeanors);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch misdemeanors" });
+  }
+});
+
+// POST a new misdemeanor
+app.post("/misdemeanors", async (req, res) => {
+  try {
+    const { club_name, misdemeanor_type, notes } = req.body;
+    const newEntry = await Misdemeanor.create({ club_name, misdemeanor_type, notes });
+    res.json(newEntry);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to add misdemeanor" });
+  }
+});
+
+// DELETE a misdemeanor
+app.delete("/misdemeanors/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Misdemeanor.destroy({ where: { id } });
+    res.json({ message: "Deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete misdemeanor" });
+  }
+});
 
 setupAuth(app);
 

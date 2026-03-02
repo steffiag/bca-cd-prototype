@@ -28,6 +28,7 @@ const MorningClub = MorningClubModel(sequelize);
 const WednesdayClub = WednesdayClubModel(sequelize);
 const Teacher = TeacherModel(sequelize);
 const ClubEnrollment = ClubEnrollmentModel(sequelize, DataTypes);
+const Misdemeanor = MisdemeanorModel(sequelize, DataTypes);
 
 // Setup associations
 User.hasMany(ClubEnrollment, { foreignKey: "user_id" });
@@ -48,4 +49,5 @@ export default {
   WednesdayClub,
   Teacher,
   ClubEnrollment,
+  Misdemeanor,
 };
