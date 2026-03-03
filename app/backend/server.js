@@ -3,7 +3,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import setupAuth from "./auth.js";
 import db from "./models/index.js";
-const { Misdemeanor } = db;
 import { getFormResponses } from "./google-forms.js";
 import OpenAI from "openai";
 import nodemailer from "nodemailer";
@@ -12,6 +11,7 @@ import { downloadImage } from "./download-images.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+const { Misdemeanor, AiMerge } = db;
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -46,6 +46,40 @@ console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
 const app = express();
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(express.json());
+
+// GET all saved AI merges
+app.get("/ai-merge-suggestions", async (req, res) => {
+  try {
+    const merges = await AiMerge.findAll();
+    res.json(merges);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch AI merges" });
+  }
+});
+
+// POST save a new AI merge suggestion
+app.post("/ai-merge-suggestions", async (req, res) => {
+  try {
+    const { club_a, email_a, club_b, email_b, suggestion } = req.body;
+    const merge = await AiMerge.create({ club_a, email_a, club_b, email_b, suggestion });
+    res.json(merge);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to save AI merge" });
+  }
+});
+
+// PATCH mark a merge as email sent
+app.patch("/ai-merge-suggestions/:id/email-sent", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const merge = await AiMerge.findByPk(id);
+    if (!merge) return res.status(404).json({ error: "Merge not found" });
+    await merge.update({ email_sent: true });
+    res.json(merge);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update merge" });
+  }
+});
 
 // GET all misdemeanors
 app.get("/misdemeanors", async (req, res) => {

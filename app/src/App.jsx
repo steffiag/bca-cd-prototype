@@ -56,7 +56,26 @@ function App() {
             body: JSON.stringify(clubs)
           });
           const suggestions = await response.json();
-          setAiMerges(suggestions);
+
+// Save each suggestion to DB
+const saved = [];
+for (const s of suggestions) {
+  const res = await fetch("http://localhost:4000/ai-merge-suggestions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      club_a: s.clubA,
+      email_a: s.emailA,
+      club_b: s.clubB,
+      email_b: s.emailB,
+      suggestion: s.suggestion,
+    }),
+  });
+  const savedMerge = await res.json();
+  saved.push({ ...s, id: savedMerge.id });
+}
+
+setAiMerges(suggestions);
         })
         .catch(err => console.error(err));
     }
@@ -302,6 +321,14 @@ function App() {
                     );
                     
                     const result = await response.json();
+                    // Mark selected merges as email sent in DB
+                    for (const merge of selectedGroups) {
+                      if (merge.id) {
+                        await fetch(`http://localhost:4000/ai-merge-suggestions/${merge.id}/email-sent`, {
+                          method: "PATCH",
+                        });
+                      }
+                    }
                     alert(result.message || "Emails sent.");
                   } 
                   
