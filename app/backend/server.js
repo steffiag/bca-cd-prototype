@@ -986,8 +986,14 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, "../dist")));
 
-app.get("/*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../dist/index.html"));
+app.get("*", (req, res) => {
+  const indexPath = path.resolve(__dirname, "../dist/index.html");
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    console.error("index.html not found at", indexPath);
+    res.status(404).send("index.html not found");
+  }
 });
 
 db.sequelize
