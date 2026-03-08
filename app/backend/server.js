@@ -986,7 +986,7 @@ const __dirname = path.dirname(__filename);
 
 const distPath = path.join(__dirname, "../dist");
 console.log("Serving static files from:", distPath);
-app.get("*/splat", (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "../dist", "index.html"));
 });
 db.sequelize
