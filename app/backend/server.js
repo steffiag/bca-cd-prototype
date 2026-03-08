@@ -985,15 +985,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, "../dist")));
-
-app.get("/:path*", (req, res) => {
-  const indexPath = path.join(__dirname, "../dist/index.html");
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send("index.html not found");
-  }
+app.get("/:path(.*)", (req, res) => {
+  res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
+
 db.sequelize
   .sync()
   .then(() => {
