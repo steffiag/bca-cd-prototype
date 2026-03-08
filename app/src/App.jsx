@@ -16,6 +16,12 @@ function App() {
   const [selectedMerges, setSelectedMerges] = useState(new Set());
   //misdemeanors tab
   const [watchlist, setWatchlist] = useState([]);
+  useEffect(() => {
+  fetch("http://localhost:4000/misdemeanors")
+    .then(res => res.json())
+    .then(data => setWatchlist(data))
+    .catch(err => console.error(err));
+}, []);
   const [selectedClub, setSelectedClub] = useState("");
   const [selectedMisdemeanor, setSelectedMisdemeanor] = useState("");
   const [notes, setNotes] = useState("");
@@ -50,7 +56,26 @@ function App() {
             body: JSON.stringify(clubs)
           });
           const suggestions = await response.json();
-          setAiMerges(suggestions);
+
+// Save each suggestion to DB
+const saved = [];
+for (const s of suggestions) {
+  const res = await fetch("http://localhost:4000/ai-merge-suggestions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      club_a: s.clubA,
+      email_a: s.emailA,
+      club_b: s.clubB,
+      email_b: s.emailB,
+      suggestion: s.suggestion,
+    }),
+  });
+  const savedMerge = await res.json();
+  saved.push({ ...s, id: savedMerge.id });
+}
+
+setAiMerges(suggestions);
         })
         .catch(err => console.error(err));
     }
@@ -296,6 +321,14 @@ function App() {
                     );
                     
                     const result = await response.json();
+                    // Mark selected merges as email sent in DB
+                    for (const merge of selectedGroups) {
+                      if (merge.id) {
+                        await fetch(`http://localhost:4000/ai-merge-suggestions/${merge.id}/email-sent`, {
+                          method: "PATCH",
+                        });
+                      }
+                    }
                     alert(result.message || "Emails sent.");
                   } 
                   
@@ -464,27 +497,32 @@ function App() {
           />
 
           <button
-            onClick={() => {
-              if (!selectedClub || !selectedMisdemeanor) {
-                alert("Please select a club and a misdemeanor.");
-                return;
-              }
+            onClick={async () => {
+  if (!selectedClub || !selectedMisdemeanor) {
+    alert("Please select a club and a misdemeanor.");
+    return;
+  }
 
-              const newEntry = {
-                id: Date.now(),
-                club: selectedClub,
-                misdemeanor: selectedMisdemeanor,
-                notes,
-                dateAdded: new Date().toLocaleDateString(),
-              };
-
-              setWatchlist([...watchlist, newEntry]);
-
-              // reset form
-              setSelectedClub("");
-              setSelectedMisdemeanor("");
-              setNotes("");
-            }}
+  try {
+    const res = await fetch("http://localhost:4000/misdemeanors", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        club_name: selectedClub,
+        misdemeanor_type: selectedMisdemeanor,
+        notes,
+      }),
+    });
+    const newEntry = await res.json();
+    setWatchlist([...watchlist, newEntry]);
+    setSelectedClub("");
+    setSelectedMisdemeanor("");
+    setNotes("");
+  } catch (err) {
+    console.error("Failed to add misdemeanor:", err);
+    alert("Failed to add. Check console.");
+  }
+}}
             style={{
               background: "#4a90e2",
               color: "white",
@@ -515,9 +553,9 @@ function App() {
               }}
             >
               <div>
-                <strong>{entry.club}</strong>
+                <strong>{entry.club_name}</strong>
                 <div style={{ fontSize: "14px", color: "#555" }}>
-                  {entry.misdemeanor}
+                  {entry.misdemeanor_type}
                 </div>
                 {entry.notes && (
                   <div style={{ fontSize: "13px", color: "#777" }}>
@@ -528,12 +566,20 @@ function App() {
 
               <div>
                 <span style={{ marginRight: "15px", fontSize: "13px" }}>
-                  {entry.dateAdded}
+                  {new Date(entry.createdAt).toLocaleDateString()}
                 </span>
                 <button
-                  onClick={() =>
-                    setWatchlist(watchlist.filter((w) => w.id !== entry.id))
+                 onClick={async () => {
+                  try {
+                    await fetch(`http://localhost:4000/misdemeanors/${entry.id}`, {
+                      method: "DELETE",
+                    });
+                    setWatchlist(watchlist.filter((w) => w.id !== entry.id));
+                  } catch (err) {
+                    console.error("Failed to delete:", err);
+                    alert("Failed to remove. Check console.");
                   }
+                }}
                   style={{
                     background: "#d9534f",
                     color: "white",

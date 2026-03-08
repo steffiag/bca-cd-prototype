@@ -5,6 +5,8 @@ import MorningClubModel from "./MorningClub.js";
 import WednesdayClubModel from "./WednesdayClub.js";
 import TeacherModel from "./Teacher.js";
 import ClubEnrollmentModel from "./ClubEnrollment.js";
+import MisdemeanorModel from "./Misdemeanor.js";
+import AiMergeModel from "./AiMerge.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -27,6 +29,8 @@ const MorningClub = MorningClubModel(sequelize);
 const WednesdayClub = WednesdayClubModel(sequelize);
 const Teacher = TeacherModel(sequelize);
 const ClubEnrollment = ClubEnrollmentModel(sequelize, DataTypes);
+const Misdemeanor = MisdemeanorModel(sequelize, DataTypes);
+const AiMerge = AiMergeModel(sequelize, DataTypes);
 
 // Setup associations
 User.hasMany(ClubEnrollment, { foreignKey: "user_id" });
@@ -47,4 +51,6 @@ export default {
   WednesdayClub,
   Teacher,
   ClubEnrollment,
+  Misdemeanor,
+  AiMerge,
 };
