@@ -64,7 +64,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
       };
 
       const response = await fetch(
-        `http://localhost:4000/wednesday-club/${club.dbId}`,
+        `/wednesday-club/${club.dbId}`,
         {
           method: club.isNew ? "POST" : "PUT",
           headers: { "Content-Type": "application/json" },
@@ -86,7 +86,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
         formDataImg.append("image", imageFile);
 
         await fetch(
-          `http://localhost:4000/upload-club-image/${safeName}`,
+          `/upload-club-image/${safeName}`,
           {
             method: "POST",
             credentials: "include",

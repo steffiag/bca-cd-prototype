@@ -38,12 +38,16 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-
-console.log("GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
-console.log("GOOGLE_CLIENT_SECRET:", process.env.GOOGLE_CLIENT_SECRET);
-
 const app = express();
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://bca-cd-prototype-production.up.railway.app"
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 setupAuth(app);
@@ -61,7 +65,7 @@ app.post("/upload-club-image/:clubName", upload.single("image"), (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
 app.get("/", (req, res) => {
   res.send("BCA Club Dashboard backend is running!");
@@ -910,7 +914,7 @@ db.sequelize
   .then(() => {
     console.log("Sequelize synced");
     app.listen(PORT, () =>
-      console.log(`Server running on http://localhost:${PORT}`)
+      console.log(`Server running on port ${PORT}`)
     );
   })
   .catch(console.error);

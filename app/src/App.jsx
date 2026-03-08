@@ -24,7 +24,7 @@ function App() {
   const { clubs: wednesdayClubs, loading: loadingWednesday, refresh: refreshWednesday } = useClubs("wednesday");
 
   useEffect(() => {
-    fetch("http://localhost:4000/auth/user", { credentials: "include" })
+    fetch("/auth/user", { credentials: "include" })
       .then(res => res.json())
       .then(data => {
         setUser(data);
@@ -33,7 +33,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:4000/teacher-availability", { credentials: "include" })
+    fetch("/teacher-availability", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setTeacherAvailability(data))
       .catch((err) => console.error(err));
@@ -41,10 +41,10 @@ function App() {
 
   useEffect(() => {
     if (page === "morning-ai-merge") {
-      fetch("http://localhost:4000/ai-merges")
+      fetch("/ai-merges")
         .then(res => res.json())
         .then(async (clubs) => {
-          const response = await fetch("http://localhost:4000/assess-similarity", {
+          const response = await fetch("/assess-similarity", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(clubs)
@@ -106,7 +106,7 @@ function App() {
 
           <button
             onClick={() =>
-              (window.location.href = "http://localhost:4000/auth/google")
+              (window.location.href = "/auth/google")
             }
           >
             Login with Google
@@ -183,7 +183,7 @@ function App() {
           <div style={{ position: "fixed", top: 20, right: 20, zIndex: 1000 }}>
             <button
               onClick={() => {
-                fetch("http://localhost:4000/auth/logout", { credentials: "include" })
+                fetch("/auth/logout", { credentials: "include" })
                   .then(() => setUser(null))
                   .catch((err) => console.error(err));
               }}
@@ -283,7 +283,7 @@ function App() {
                   
                   try {
                     const response = await fetch(
-                      "http://localhost:4000/send-merge-emails",
+                      "/send-merge-emails",
                       {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
