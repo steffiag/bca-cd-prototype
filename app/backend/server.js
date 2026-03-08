@@ -138,9 +138,9 @@ app.post("/upload-club-image/:clubName", upload.single("image"), (req, res) => {
 });
 const PORT = process.env.PORT || 4000;
 
-app.get("/", (req, res) => {
-  res.send("BCA Club Dashboard backend is running!");
-});
+// app.get("/", (req, res) => {
+//   res.send("BCA Club Dashboard backend is running!");
+// });
 
 // ============================================
 // TEACHER AVAILABILITY ENDPOINTS
