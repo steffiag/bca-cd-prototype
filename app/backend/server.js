@@ -12,6 +12,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 const { Misdemeanor, AiMerge } = db;
+import { fileURLToPath } from "url";
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -977,6 +978,16 @@ app.get("/club/:club_id/members", async (req, res) => {
     console.error(err);
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, "../dist")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
 db.sequelize
