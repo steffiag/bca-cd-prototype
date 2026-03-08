@@ -984,7 +984,8 @@ app.get("/club/:club_id/members", async (req, res) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(express.static(path.join(__dirname, "../dist")));
+const distPath = path.join(__dirname, "../dist");
+console.log("Serving static files from:", distPath);
 app.get("/*splat", (req, res) => {
   res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
