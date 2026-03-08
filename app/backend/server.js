@@ -980,15 +980,14 @@ app.get("/club/:club_id/members", async (req, res) => {
   }
 });
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const distPath = path.join(__dirname, "../dist");
-console.log("Serving static files from:", distPath);
+app.use(express.static(path.join(__dirname, "../dist")));  // ← add this
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "../dist", "index.html"));
 });
+
 db.sequelize
   .sync()
   .then(() => {
