@@ -21,7 +21,7 @@ export default function MorningClubManagement({ setPage, user }) {
   const isTeacher = user?.isTeacher || false;
 
   useEffect(() => {
-    fetch("http://localhost:4000/morning-club", { credentials: "include" })
+    fetch("/morning-club", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setClubs(data))
       .catch((err) => console.error(err));
@@ -83,7 +83,7 @@ export default function MorningClubManagement({ setPage, user }) {
       return;
     }
     
-    const url = `http://localhost:4000/morning-club/${identifier}/${club.source || 'manual'}`;
+    const url = `/morning-club/${identifier}/${club.source || 'manual'}`;
     console.log("DELETE URL:", url);
     
     const response = await fetch(url, {
@@ -125,7 +125,7 @@ const toggleClubSelection = (clubId) => {
         const club = clubs.find(c => c.dbId === id);
         if (!club) continue;
 
-        const response = await fetch(`http://localhost:4000/morning-club/${id}`, {
+        const response = await fetch(`/morning-club/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -138,7 +138,7 @@ const toggleClubSelection = (clubId) => {
         }
       }
 
-      const refreshResponse = await fetch("http://localhost:4000/morning-club", { credentials: "include" });
+      const refreshResponse = await fetch("/morning-club", { credentials: "include" });
       const updatedClubs = await refreshResponse.json();
       setClubs(updatedClubs);
       setSelectedClubs([]);
@@ -151,7 +151,7 @@ const toggleClubSelection = (clubId) => {
   const handleViewMembers = async (club) => {
   try {
     const res = await fetch(
-      `http://localhost:4000/club/${club.dbId}/members?type=morning`,
+      `/club/${club.dbId}/members?type=morning`,
       { credentials: "include" }
     );
     const data = await res.json();
@@ -233,8 +233,6 @@ const toggleClubSelection = (clubId) => {
             <option value="">-- Select --</option>
             {isTeacher && <option value="add">Add Club</option>}
             <option value="ai-merge">AI Merge</option>
-            <option value="teacher">Add Teacher</option>
-            <option value="archive">Archive Clubs</option>
           </select>
         </div>
       </div>
@@ -400,7 +398,7 @@ const toggleClubSelection = (clubId) => {
                   mission: updatedData.mission,
                 };
 
-                const response = await fetch("http://localhost:4000/morning-club", {
+                const response = await fetch("/morning-club", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   credentials: "include",
@@ -409,7 +407,7 @@ const toggleClubSelection = (clubId) => {
 
                 if (response.ok) {
                   // Refresh the clubs list from the server
-                  const refreshResponse = await fetch("http://localhost:4000/morning-club", { credentials: "include" });
+                  const refreshResponse = await fetch("/morning-club", { credentials: "include" });
                   const updatedClubs = await refreshResponse.json();
                   setClubs(updatedClubs);
                   alert("Club added successfully!");
@@ -422,7 +420,7 @@ const toggleClubSelection = (clubId) => {
               }
             } else {
               try {
-                const response = await fetch(`http://localhost:4000/morning-club/${selectedClub.dbId}`, {
+                const response = await fetch(`/morning-club/${selectedClub.dbId}`, {
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
                   credentials: "include",
@@ -443,7 +441,7 @@ const toggleClubSelection = (clubId) => {
 
                 if (response.ok) {
                   // Refresh from backend to get latest data
-                  const refreshResponse = await fetch("http://localhost:4000/morning-club", { credentials: "include" });
+                  const refreshResponse = await fetch("/morning-club", { credentials: "include" });
                   const updatedClubs = await refreshResponse.json();
                   setClubs(updatedClubs);
                 } else {

@@ -17,7 +17,7 @@ function App() {
   //misdemeanors tab
   const [watchlist, setWatchlist] = useState([]);
   useEffect(() => {
-  fetch("http://localhost:4000/misdemeanors")
+  fetch("/misdemeanors")
     .then(res => res.json())
     .then(data => setWatchlist(data))
     .catch(err => console.error(err));
@@ -30,16 +30,20 @@ function App() {
   const { clubs: wednesdayClubs, loading: loadingWednesday, refresh: refreshWednesday } = useClubs("wednesday");
 
   useEffect(() => {
-    fetch("http://localhost:4000/auth/user", { credentials: "include" })
-      .then(res => res.json())
+    fetch("/auth/user", { credentials: "include" })
+      .then(res => {
+        if (!res.ok) throw new Error("Not authenticated");
+        return res.json();
+      })
       .then(data => {
         setUser(data);
         setPortal("admin");
-      });
+      })
+      .catch(err => console.error("Auth check failed:", err));
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:4000/teacher-availability", { credentials: "include" })
+    fetch("/teacher-availability", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setTeacherAvailability(data))
       .catch((err) => console.error(err));
@@ -47,10 +51,10 @@ function App() {
 
   useEffect(() => {
     if (page === "morning-ai-merge") {
-      fetch("http://localhost:4000/ai-merges")
+      fetch("/ai-merges")
         .then(res => res.json())
         .then(async (clubs) => {
-          const response = await fetch("http://localhost:4000/assess-similarity", {
+          const response = await fetch("/assess-similarity", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(clubs)
@@ -60,7 +64,7 @@ function App() {
 // Save each suggestion to DB
 const saved = [];
 for (const s of suggestions) {
-  const res = await fetch("http://localhost:4000/ai-merge-suggestions", {
+  const res = await fetch("/ai-merge-suggestions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -131,7 +135,7 @@ setAiMerges(suggestions);
 
           <button
             onClick={() =>
-              (window.location.href = "http://localhost:4000/auth/google")
+              (window.location.href = "/auth/google")
             }
           >
             Login with Google
@@ -208,7 +212,7 @@ setAiMerges(suggestions);
           <div style={{ position: "fixed", top: 20, right: 20, zIndex: 1000 }}>
             <button
               onClick={() => {
-                fetch("http://localhost:4000/auth/logout", { credentials: "include" })
+                fetch("/auth/logout", { credentials: "include" })
                   .then(() => setUser(null))
                   .catch((err) => console.error(err));
               }}
@@ -308,7 +312,7 @@ setAiMerges(suggestions);
                   
                   try {
                     const response = await fetch(
-                      "http://localhost:4000/send-merge-emails",
+                      "/send-merge-emails",
                       {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -324,7 +328,7 @@ setAiMerges(suggestions);
                     // Mark selected merges as email sent in DB
                     for (const merge of selectedGroups) {
                       if (merge.id) {
-                        await fetch(`http://localhost:4000/ai-merge-suggestions/${merge.id}/email-sent`, {
+                        await fetch(`/ai-merge-suggestions/${merge.id}/email-sent`, {
                           method: "PATCH",
                         });
                       }
@@ -504,7 +508,7 @@ setAiMerges(suggestions);
   }
 
   try {
-    const res = await fetch("http://localhost:4000/misdemeanors", {
+    const res = await fetch("/misdemeanors", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -571,7 +575,7 @@ setAiMerges(suggestions);
                 <button
                  onClick={async () => {
                   try {
-                    await fetch(`http://localhost:4000/misdemeanors/${entry.id}`, {
+                    await fetch(`/misdemeanors/${entry.id}`, {
                       method: "DELETE",
                     });
                     setWatchlist(watchlist.filter((w) => w.id !== entry.id));

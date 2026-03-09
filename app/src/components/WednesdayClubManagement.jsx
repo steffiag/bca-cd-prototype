@@ -21,7 +21,7 @@ export default function WednesdayClubManagement({ user }) {
   const isTeacher = user?.isTeacher || false;
 
   useEffect(() => {
-    fetch("http://localhost:4000/wednesday-club", {
+    fetch("/wednesday-club", {
       credentials: "include",
     })
       .then((res) => res.json())
@@ -90,7 +90,7 @@ export default function WednesdayClubManagement({ user }) {
         return;
       }
       
-      const url = `http://localhost:4000/wednesday-club/${identifier}/${club.source || 'manual'}`;
+      const url = `/wednesday-club/${identifier}/${club.source || 'manual'}`;
       console.log("DELETE URL:", url);
       
       const response = await fetch(url, {
@@ -131,7 +131,7 @@ export default function WednesdayClubManagement({ user }) {
         const club = clubs.find((c) => c.dbId === id);
         if (!club) continue;
 
-        const response = await fetch(`http://localhost:4000/wednesday-club/${id}`, {
+        const response = await fetch(`/wednesday-club/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -144,7 +144,7 @@ export default function WednesdayClubManagement({ user }) {
         }
       }
 
-      const refreshResponse = await fetch("http://localhost:4000/wednesday-club", {
+      const refreshResponse = await fetch("/wednesday-club", {
         credentials: "include",
       });
       const updatedClubs = await refreshResponse.json();
@@ -161,7 +161,7 @@ export default function WednesdayClubManagement({ user }) {
   const handleViewMembers = async (club) => {
   try {
     const res = await fetch(
-      `http://localhost:4000/club/${club.dbId}/members?type=morning`,
+      `/club/${club.dbId}/members?type=wednesday`,
       { credentials: "include" }
     );
     const data = await res.json();
@@ -234,25 +234,6 @@ export default function WednesdayClubManagement({ user }) {
             Clear
           </button>
           <button>Submit</button>
-        </div>
-
-        <div className="tools">
-          <strong>Other Tools:</strong>
-          <br />
-          <select
-            onChange={(e) => {
-              if (e.target.value === "add" && isTeacher) {
-                handleAddNewClub();
-                e.target.value = "";
-              }
-            }}
-          >
-            <option value="">-- Select --</option>
-            {isTeacher && <option value="add">Add Club</option>}
-            <option>Archive Clubs</option>
-            <option>Add Teacher</option>
-            <option>Reset Availability</option>
-          </select>
         </div>
       </div>
 
@@ -407,7 +388,7 @@ export default function WednesdayClubManagement({ user }) {
                 mission: updatedData.mission,
               };
 
-              const response = await fetch("http://localhost:4000/wednesday-club", {
+              const response = await fetch("/wednesday-club", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -415,7 +396,7 @@ export default function WednesdayClubManagement({ user }) {
               });
 
               if (response.ok) {
-                const refreshResponse = await fetch("http://localhost:4000/wednesday-club", { credentials: "include" });
+                const refreshResponse = await fetch("/wednesday-club", { credentials: "include" });
                 const updatedClubs = await refreshResponse.json();
                 setClubs(updatedClubs);
                 alert("Club added successfully!");
@@ -429,7 +410,7 @@ export default function WednesdayClubManagement({ user }) {
             }
           } else {
             try {
-              const response = await fetch(`http://localhost:4000/wednesday-club/${selectedClub.dbId}`, {
+              const response = await fetch(`/wednesday-club/${selectedClub.dbId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -446,7 +427,7 @@ export default function WednesdayClubManagement({ user }) {
               });
 
               if (response.ok) {
-                const refreshResponse = await fetch("http://localhost:4000/wednesday-club", { credentials: "include" });
+                const refreshResponse = await fetch("/wednesday-club", { credentials: "include" });
                 const updatedClubs = await refreshResponse.json();
                 setClubs(updatedClubs);
                 alert("Club updated successfully!");

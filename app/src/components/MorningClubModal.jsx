@@ -1,5 +1,14 @@
 import { useState, useEffect } from "react";
 
+function cleanMembers(raw) {
+  if (!raw) return "";
+  return raw
+    .split(/[\n,]/)
+    .map((s) => s.trim())
+    .filter((s) => s && !/^\d+$/.test(s))
+    .join(", ");
+}
+
 export default function EditClubModal({ club, isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState({
     clubName: club.club || "",
@@ -9,9 +18,9 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
     room: club.room || "",
     day: club.day || "",
     time: club.time || "",
-    members: club.membersRaw || "",
+    members: cleanMembers(club.membersRaw),
     status: club.status || "Pending",
-    mission: club.mission || "", 
+    mission: club.mission || "",
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -29,7 +38,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
         room: club.room || "",
         day: club.day || "",
         time: club.time || "",
-        members: club.membersRaw || "",
+        members: cleanMembers(club.membersRaw),
         status: club.status || "Pending",
         merge: club.merge || "No",
         mission: club.mission || "",
@@ -69,7 +78,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
           mission: formData.mission,
         };
 
-        const response = await fetch(`http://localhost:4000/morning-club/${club.dbId}`, {
+        const response = await fetch(`/morning-club/${club.dbId}`, {
           method: club.isNew ? "POST" : "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -87,7 +96,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
     const formDataImg = new FormData();
     formDataImg.append("image", imageFile);
 
-    await fetch(`http://localhost:4000/upload-club-image/${safeName}`, {
+    await fetch(`/upload-club-image/${safeName}`, {
       method: "POST",
       credentials: "include",
       body: formDataImg,

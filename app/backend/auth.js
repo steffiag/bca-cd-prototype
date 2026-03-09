@@ -23,7 +23,7 @@ export default function setupAuth(app) {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: "http://localhost:4000/auth/google/callback",
+        callbackURL: "/auth/google/callback",
       },
       async (accessToken, refreshToken, profile, done) => {
         try {
@@ -54,12 +54,16 @@ export default function setupAuth(app) {
   );
 
   app.get(
-    "/auth/google/callback",
-    passport.authenticate("google", { failureRedirect: "/" }),
-    (req, res) => {
-      res.redirect("http://localhost:5173");
-    }
-  );
+  "/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/" }),
+  (req, res) => {
+    res.redirect(
+      process.env.NODE_ENV === "production"
+        ? "https://bca-cd-prototype-production.up.railway.app"
+        : "http://localhost:5173"
+    );
+  }
+);
 
   app.get("/auth/user", async (req, res) => {
   try {

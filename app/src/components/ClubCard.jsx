@@ -13,7 +13,7 @@ export default function ClubCard({ club }) {
       if (!currentUser) return;
       try {
         const res = await axios.get(
-          `http://localhost:4000/user-clubs/${currentUser.email}`,
+          `/user-clubs/${currentUser.email}`,
           { withCredentials: true }
         );
         const isEnrolled = res.data.enrollments.some(
@@ -34,7 +34,7 @@ export default function ClubCard({ club }) {
   const refreshMemberCount = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:4000/club/${club.dbId}/members?type=${club.type}`,
+        `/club/${club.dbId}/members?type=${club.type}`,
         { withCredentials: true }
       );
       setMemberCount(res.data.members.length);
@@ -48,7 +48,7 @@ export default function ClubCard({ club }) {
 
     try {
       await axios.post(
-        "http://localhost:4000/club-enrollments",
+        "/club-enrollments",
         {
           user_id: currentUser.email,
           club_id: club.dbId,
@@ -70,7 +70,7 @@ export default function ClubCard({ club }) {
 
     try {
       await axios.delete(
-        "http://localhost:4000/club-enrollments",
+        "/club-enrollments",
         {
           data: {
             user_id: currentUser.email,

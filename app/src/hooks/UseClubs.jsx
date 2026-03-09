@@ -25,9 +25,10 @@ export function useClubs(type) {
             dbId: c.dbId,
             name: c.club,
             mission: c.mission,
-            members: count,
-            image: `/images/${fileName}`,
+            members: c.members || "N/A",
             type,
+            category: c.category || "",
+            image: `/images/${c.club.replace(/[^a-z0-9]/gi, "_")}.png`,
           };
         })
       );

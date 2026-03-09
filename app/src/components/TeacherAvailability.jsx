@@ -472,7 +472,7 @@ export default function TeacherAvailability({ user }) {
   const showToast = (message, type = "success") => setToast({ message, type });
 
   const fetchTeachers = () => {
-    fetch("http://localhost:4000/teacher-availability", { credentials: "include" })
+    fetch("/teacher-availability", { credentials: "include" })
       .then((res) => res.json())
       .then((data) => setTeachers(data))
       .catch((err) => console.error(err));
@@ -506,7 +506,7 @@ export default function TeacherAvailability({ user }) {
     }
     if (!window.confirm(`Delete ${teacher.name}?`)) return;
     try {
-      const res = await fetch(`http://localhost:4000/teacher-availability/${teacher.id}/${teacher.source || "manual"}`, {
+      const res = await fetch(`/teacher-availability/${teacher.id}/${teacher.source || "manual"}`, {
         method: "DELETE", credentials: "include",
       });
       if (res.ok) { fetchTeachers(); showToast("Teacher deleted"); }
@@ -521,7 +521,7 @@ export default function TeacherAvailability({ user }) {
     }
     try {
       const newAvail = !teacher.availableBool;
-      const res = await fetch(`http://localhost:4000/teacher-availability/${teacher.id}/confirm`, {
+      const res = await fetch(`/teacher-availability/${teacher.id}/confirm`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -534,7 +534,7 @@ export default function TeacherAvailability({ user }) {
 
   const handleAssignedClubChange = async (teacher, newClub) => {
     try {
-      const res = await fetch(`http://localhost:4000/teacher-availability/${teacher.id}`, {
+      const res = await fetch(`/teacher-availability/${teacher.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -547,7 +547,7 @@ export default function TeacherAvailability({ user }) {
 
   const handleSendEmails = async (recipientList) => {
     try {
-      const res = await fetch("http://localhost:4000/send-availability-reminders", {
+      const res = await fetch("/send-availability-reminders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -564,7 +564,7 @@ export default function TeacherAvailability({ user }) {
     let successCount = 0;
     for (const row of rows) {
       try {
-        const res = await fetch("http://localhost:4000/teacher-availability", {
+        const res = await fetch("/teacher-availability", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -587,8 +587,8 @@ export default function TeacherAvailability({ user }) {
   const handleSave = async (updatedData) => {
     const isNew = selectedTeacher?.isNew;
     const url = isNew
-      ? "http://localhost:4000/teacher-availability"
-      : `http://localhost:4000/teacher-availability/${selectedTeacher.id}`;
+      ? "/teacher-availability"
+      : `/teacher-availability/${selectedTeacher.id}`;
     const method = isNew ? "POST" : "PUT";
     try {
       const res = await fetch(url, {
