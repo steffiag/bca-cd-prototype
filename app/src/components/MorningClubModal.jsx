@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 function cleanMembers(raw) {
   if (!raw) return "";
   return raw
-    .split(",")
+    .split(/[\n,]/)
     .map((s) => s.trim())
     .filter((s) => s && !/^\d+$/.test(s))
     .join(", ");

@@ -161,7 +161,7 @@ export default function WednesdayClubManagement({ user }) {
   const handleViewMembers = async (club) => {
   try {
     const res = await fetch(
-      `/club/${club.dbId}/members?type=morning`,
+      `/club/${club.dbId}/members?type=wednesday`,
       { credentials: "include" }
     );
     const data = await res.json();

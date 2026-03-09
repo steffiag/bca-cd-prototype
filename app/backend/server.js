@@ -400,7 +400,7 @@ app.get("/wednesday-club", async (req, res) => {
       advisor: club.advisor,
       room: club.room,
       membersRaw: club.members_raw,
-      members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
+      members: club.members_raw.split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
       status: club.status,
       source: club.source,
       mission: club.mission || "",
@@ -486,7 +486,7 @@ app.get("/morning-club", async (req, res) => {
       day: club.day,
       time: club.time,
       membersRaw: club.members_raw,
-      members: club.members_raw.split(",").filter(Boolean).length >= 5 ? "Yes" : "No",
+      members: club.members_raw.split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
       status: club.status,
       merge: club.merge,
       source: club.source,
@@ -916,13 +916,6 @@ app.delete("/club-enrollments", async (req, res) => {
     });
 
     if (!deleted) return res.status(404).json({ success: false, error: "Enrollment not found" });
-
-    const ClubModel = club_type === "morning" ? db.MorningClub : db.WednesdayClub;
-    const club = await ClubModel.findByPk(club_id);
-    const members = club.members_raw 
-      ? club.members_raw.split(",").filter(id => id != user.usr_id) 
-      : [];
-    await club.update({ members_raw: members.join(",") });
 
     res.json({ success: true, message: "Removed from club" });
   } catch (err) {
