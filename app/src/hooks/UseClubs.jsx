@@ -28,9 +28,7 @@ export function useClubs(type) {
             members: c.members || "N/A",
             type,
             category: c.category || "",
-            image: c.photo
-              ? `https://drive.google.com/uc?export=view&id=${c.photo}`
-              : `/images/${c.club.replace(/[^a-z0-9]/gi, "_")}.png`,
+            image: `/images/${c.club.replace(/[^a-z0-9]/gi, "_")}.png`,
           };
         })
       );

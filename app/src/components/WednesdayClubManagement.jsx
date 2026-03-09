@@ -235,25 +235,6 @@ export default function WednesdayClubManagement({ user }) {
           </button>
           <button>Submit</button>
         </div>
-
-        <div className="tools">
-          <strong>Other Tools:</strong>
-          <br />
-          <select
-            onChange={(e) => {
-              if (e.target.value === "add" && isTeacher) {
-                handleAddNewClub();
-                e.target.value = "";
-              }
-            }}
-          >
-            <option value="">-- Select --</option>
-            {isTeacher && <option value="add">Add Club</option>}
-            <option>Archive Clubs</option>
-            <option>Add Teacher</option>
-            <option>Reset Availability</option>
-          </select>
-        </div>
       </div>
 
       {/* Add New Club Button - Only visible for teachers */}

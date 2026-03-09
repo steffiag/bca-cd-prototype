@@ -233,8 +233,6 @@ const toggleClubSelection = (clubId) => {
             <option value="">-- Select --</option>
             {isTeacher && <option value="add">Add Club</option>}
             <option value="ai-merge">AI Merge</option>
-            <option value="teacher">Add Teacher</option>
-            <option value="archive">Archive Clubs</option>
           </select>
         </div>
       </div>
