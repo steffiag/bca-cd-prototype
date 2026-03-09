@@ -26,7 +26,9 @@ export function useClubs(type) {
             name: c.club,
             mission: c.mission,
             members: c.members || "N/A",
-            image: c.photo 
+            type,
+            category: c.category || "",
+            image: c.photo
               ? `https://drive.google.com/uc?export=view&id=${c.photo}`
               : `/images/${c.club.replace(/[^a-z0-9]/gi, "_")}.png`,
           };

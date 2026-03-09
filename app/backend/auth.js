@@ -54,12 +54,16 @@ export default function setupAuth(app) {
   );
 
   app.get(
-    "/auth/google/callback",
-    passport.authenticate("google", { failureRedirect: "/" }),
-    (req, res) => {
-      res.redirect("/");
-    }
-  );
+  "/auth/google/callback",
+  passport.authenticate("google", { failureRedirect: "/" }),
+  (req, res) => {
+    res.redirect(
+      process.env.NODE_ENV === "production"
+        ? "https://bca-cd-prototype-production.up.railway.app"
+        : "http://localhost:5173"
+    );
+  }
+);
 
   app.get("/auth/user", async (req, res) => {
   try {

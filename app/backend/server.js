@@ -538,15 +538,17 @@ app.get("/approved-morning-clubs", async (req, res) => {
         "club_name",
         "mission",
         "photo_file_id",
+        "category",
       ],
     });
 
     res.json(
       clubs.map(c => ({
-        dbId: c.id, 
+        dbId: c.id,
         club: c.club_name,
         mission: c.mission,
         photo: c.photo_file_id,
+        category: c.category,
       }))
     );
   } catch (err) {
@@ -566,15 +568,17 @@ app.get("/approved-wednesday-clubs", async (req, res) => {
         "club_name",
         "mission",
         "photo_file_id",
+        "category",
       ],
     });
 
     res.json(
       clubs.map(c => ({
-        dbId: c.id, 
+        dbId: c.id,
         club: c.club_name,
         mission: c.mission,
         photo: c.photo_file_id,
+        category: c.category,
       }))
     );
   } catch (err) {
@@ -811,11 +815,6 @@ app.post("/assess-similarity", async (req, res) => {
   }
 });
 
-// Signup Functionality
-app.post("/club-enrollments", async (req, res) => {
-  try {
-    const { user_id, club_id, club_type } = req.body;
-
 // Send merge emails to club admins
 app.post('/send-merge-emails', async (req, res) => {
   console.log('/send-merge-emails called');
@@ -846,13 +845,13 @@ app.post('/send-merge-emails', async (req, res) => {
         subject: `Merge suggestion: ${merge.clubA} + ${merge.clubB}`,
         text: `Hello!
         After reviewing club proposals, we noticed that your clubs have similar missions and activities. We suggest considering a potential merge to make your efforts even stronger.
-        
+
         Clubs involved:
         - ${merge.clubA}
         - ${merge.clubB}
-        
+
         Both club leaders are cc'd on this email. Please coordinate with each other and let us know what you decide.
-        
+
         Thank you for your collaboration and dedication to your clubs!`
       });
       console.log('Email send result:', info);
@@ -864,9 +863,11 @@ app.post('/send-merge-emails', async (req, res) => {
   res.json({ status: 'All merges processed' });
 });
 
+// Signup Functionality
+app.post("/club-enrollments", async (req, res) => {
+  try {
+    const { user_id, club_id, club_type } = req.body;
 
-
-;
     if (!user_id || !club_id || !club_type) {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
@@ -895,18 +896,6 @@ app.post('/send-merge-emails', async (req, res) => {
     }
 
     const enrollment = await db.ClubEnrollment.create({ user_id: actualUserId, club_id, club_type });
-
-    const ClubModel = club_type === "morning" ? db.MorningClub : db.WednesdayClub;
-    const club = await ClubModel.findByPk(club_id);
-    const members = club.members_raw ? club.members_raw.split(",") : [];
-    if (!club) {
-    return res.status(404).json({
-      success: false,
-      error: "Club not found",
-    });
-  }
-    members.push(actualUserId);
-    await club.update({ members_raw: members.join(",") });
 
     res.json({ success: true, enrollment });
   } catch (err) {
