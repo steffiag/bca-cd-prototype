@@ -1,5 +1,14 @@
 import { useState, useEffect } from "react";
 
+function cleanMembers(raw) {
+  if (!raw) return "";
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s && !/^\d+$/.test(s))
+    .join(", ");
+}
+
 export default function EditClubModal({ club, isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState({
     clubName: club.club || "",
@@ -9,9 +18,9 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
     room: club.room || "",
     day: club.day || "",
     time: club.time || "",
-    members: club.membersRaw || "",
+    members: cleanMembers(club.membersRaw),
     status: club.status || "Pending",
-    mission: club.mission || "", 
+    mission: club.mission || "",
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -29,7 +38,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
         room: club.room || "",
         day: club.day || "",
         time: club.time || "",
-        members: club.membersRaw || "",
+        members: cleanMembers(club.membersRaw),
         status: club.status || "Pending",
         merge: club.merge || "No",
         mission: club.mission || "",
