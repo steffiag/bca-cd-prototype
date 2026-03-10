@@ -346,15 +346,7 @@ setAiMerges(suggestions);
                     </button>
 
 
-                  <div>
-                    <strong>Deadline:</strong>{" "}
-                    <input
-                      type="date"
-                      value="2026-03-15"
-                      readOnly
-                      style={{ padding: "6px" }}
-                    />
-                  </div>
+                 
                 </div>
 
   {aiMerges.length > 0 ? (
