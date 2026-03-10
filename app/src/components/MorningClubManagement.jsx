@@ -309,7 +309,7 @@ const toggleClubSelection = (clubId) => {
             <th>Status</th>
             <th>View/Edit</th>
             <th>Members</th>
-            <th>Merge?</th>
+            {/* <th>Merge?</th> */}
             {isTeacher && <th>Delete</th>}
           </tr>
         </thead>
@@ -345,7 +345,7 @@ const toggleClubSelection = (clubId) => {
                 Members
               </button>
             </td>
-              <td>{club.merge || "No"}</td>
+              {/* <td>{club.merge || "No"}</td> */}
               {isTeacher && (
                 <td>
                   <button 
