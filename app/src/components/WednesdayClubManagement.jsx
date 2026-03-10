@@ -210,13 +210,6 @@ export default function WednesdayClubManagement({ user }) {
           <option>Rejected</option>
         </select>
 
-          <button
-            disabled={selectedClubs.length === 0 || !bulkStatus}
-            onClick={handleBulkStatusUpdate}
-          >
-            Submit
-          </button>
-
           <label>Advisor:</label>
           <select
             name="advisor"
