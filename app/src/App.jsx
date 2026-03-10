@@ -281,10 +281,10 @@ setAiMerges(suggestions);
                   Morning Club Management: AI Merges
                 </div>
 
-                <p style={{ textAlign: "center", marginBottom: "25px", color: "#1e3a5f" }}>
+                {/* <p style={{ textAlign: "center", marginBottom: "25px", color: "#1e3a5f" }}>
                   AI has analyzed proposed and approved clubs and grouped clubs that may
                   benefit from merging based on mission statements, activities, and goals.
-                </p>
+                </p> */}
                 <div
                   style={{
                     display: "flex",
@@ -448,9 +448,9 @@ setAiMerges(suggestions);
       <>
         <div className="page-title">Club Watchlist</div>
 
-        <p style={{ textAlign: "center", marginBottom: "25px", color: "#1e3a5f" }}>
+        {/* <p style={{ textAlign: "center", marginBottom: "25px", color: "#1e3a5f" }}>
           Track clubs that require administrative monitoring.
-        </p>
+        </p> */}
 
         {/* Add Form */}
         <div
