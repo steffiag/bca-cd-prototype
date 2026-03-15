@@ -13,20 +13,10 @@ import path from "path";
 import fs from "fs";
 const { Misdemeanor, AiMerge } = db;
 import { fileURLToPath } from "url";
-import dns from "dns";
+import { Resend } from "resend";
 
-dns.setDefaultResultOrder("ipv4first");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  family: 4,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
 //calculates similarity
 function cosineSimilarity(a, b) {
   const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
@@ -844,8 +834,8 @@ app.post('/send-merge-emails', async (req, res) => {
     console.log('Processing merge:', merge, 'Recipients:', recipients);
 
     try {
-      const info = await transporter.sendMail({
-        from: adminEmail,
+      const info = await resend.emails.send({
+        from: "Club Dashboard <onboarding@resend.dev>",
         to: recipients,
         subject: `Merge suggestion: ${merge.clubA} + ${merge.clubB}`,
         text: `Hello!
