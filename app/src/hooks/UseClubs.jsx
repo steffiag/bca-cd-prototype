@@ -12,8 +12,8 @@ export function useClubs(type) {
     try {
       const endpoint =
         type === "morning"
-          ? "http://localhost:4000/approved-morning-clubs"
-          : "http://localhost:4000/approved-wednesday-clubs";
+          ? "/approved-morning-clubs"
+          : "/approved-wednesday-clubs";
 
       const res = await axios.get(endpoint, { withCredentials: true });
 

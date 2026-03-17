@@ -13,14 +13,9 @@ import path from "path";
 import fs from "fs";
 const { Misdemeanor, AiMerge } = db;
 import { fileURLToPath } from "url";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 //calculates similarity
 function cosineSimilarity(a, b) {
@@ -839,8 +834,8 @@ app.post('/send-merge-emails', async (req, res) => {
     console.log('Processing merge:', merge, 'Recipients:', recipients);
 
     try {
-      const info = await transporter.sendMail({
-        from: adminEmail,
+      const info = await resend.emails.send({
+        from: "Club Dashboard <onboarding@resend.dev>",
         to: recipients,
         subject: `Merge suggestion: ${merge.clubA} + ${merge.clubB}`,
         text: `Hello!
@@ -851,6 +846,7 @@ app.post('/send-merge-emails', async (req, res) => {
         - ${merge.clubB}
 
         Both club leaders are cc'd on this email. Please coordinate with each other and let us know what you decide.
+        In case a decision cannot be reached regarding the merge or you have any additional questions, please come see Ms. Rosalyn Kim.
 
         Thank you for your collaboration and dedication to your clubs!`
       });
