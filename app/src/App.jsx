@@ -482,6 +482,7 @@ setAiMerges(suggestions);
             <option>Budget Violations</option>
             <option>Low Attendance</option>
             <option>Code of Conduct Violation</option>
+            <option>Other</option>
           </select>
 
           <input
