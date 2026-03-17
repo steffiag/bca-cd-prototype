@@ -846,6 +846,7 @@ app.post('/send-merge-emails', async (req, res) => {
         - ${merge.clubB}
 
         Both club leaders are cc'd on this email. Please coordinate with each other and let us know what you decide.
+        In case a decision cannot be reached regarding the merge or you have any additional questions, please come see Ms. Rosalyn Kim.
 
         Thank you for your collaboration and dedication to your clubs!`
       });
