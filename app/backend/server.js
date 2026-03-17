@@ -839,16 +839,17 @@ app.post('/send-merge-emails', async (req, res) => {
         to: recipients,
         subject: `Merge suggestion: ${merge.clubA} + ${merge.clubB}`,
         text: `Hello!
-        After reviewing club proposals, we noticed that your clubs have similar missions and activities. We suggest considering a potential merge to make your efforts even stronger.
+        After reviewing club proposals, I noticed that your clubs have similar missions and activities. I suggest you consider merging your clubs to make your efforts even stronger.
 
         Clubs involved:
         - ${merge.clubA}
         - ${merge.clubB}
 
         Both club leaders are cc'd on this email. Please coordinate with each other and let us know what you decide.
-        In case a decision cannot be reached regarding the merge or you have any additional questions, please come see Ms. Rosalyn Kim.
+        In case a decision cannot be reached regarding the merge or you have any additional questions, please come see me in Room 152.
 
-        Thank you for your collaboration and dedication to your clubs!`
+        Thank you for your collaboration and dedication to your clubs!
+        Ms. Kim`
       });
       console.log('Email send result:', info);
     } catch (err) {
