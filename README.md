@@ -1,1 +1,1 @@
-https://bca-cd-prototype-production.up.railway.app/
+https://bca-cd-prototype-production-2.up.railway.app/
