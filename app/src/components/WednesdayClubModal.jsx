@@ -19,6 +19,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
     members: cleanMembers(club.membersRaw),
     status: club.status || "Pending",
     mission: club.mission || "",
+    memberCap: club.memberCap ?? "",
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -37,6 +38,7 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
           members: cleanMembers(club.membersRaw),
           status: club.status || "Pending",
           mission: club.mission || "",
+          memberCap: club.memberCap ?? "",
         });
         setImagePreview( club.club ? `/images/${club.club.replace(/[^a-z0-9]/gi, "_")}.png` : null );
         setImageFile(null);
@@ -64,46 +66,24 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
         category: formData.category,
         advisor: formData.advisor,
         room: formData.room,
-        day: formData.day,
-        time: formData.time,
         members: formData.members,
         status: formData.status,
-        merge: formData.merge,
         mission: formData.mission,
+        memberCap: formData.memberCap !== "" ? Number(formData.memberCap) : null,
       };
-
-      const response = await fetch(
-        `/wednesday-club/${club.dbId}`,
-        {
-          method: club.isNew ? "POST" : "PUT",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(saveData),
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        console.error("Club save failed:", data);
-        alert("Failed to save club: " + (data.error || response.status));
-        return;
-      }
 
       if (imageFile) {
         const safeName = formData.clubName.replace(/\s+/g, "_");
         const formDataImg = new FormData();
         formDataImg.append("image", imageFile);
-
-        await fetch(
-          `/upload-club-image/${safeName}`,
-          {
-            method: "POST",
-            credentials: "include",
-            body: formDataImg,
-          }
-        );
+        await fetch(`/upload-club-image/${safeName}`, {
+          method: "POST",
+          credentials: "include",
+          body: formDataImg,
+        });
         setImageVersion(Date.now());
       }
+
       onSave({ ...saveData, dbId: club.dbId });
       onClose();
     } catch (err) {
@@ -229,6 +209,18 @@ export default function EditClubModal({ club, isOpen, onClose, onSave }) {
           rows={3}
           placeholder="Enter mission statement"
           style={textareaStyle}
+        />
+      </div>
+      <div style={fieldStyle}>
+        <label>Membership Cap:</label>
+        <input
+          type="number"
+          name="memberCap"
+          value={formData.memberCap}
+          onChange={handleChange}
+          min="1"
+          placeholder="No cap"
+          style={inputStyle}
         />
       </div>
       <div style={fieldStyle}>

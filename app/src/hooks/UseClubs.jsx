@@ -29,6 +29,7 @@ export function useClubs(type) {
             type,
             category: c.category || "",
             image: `/images/${c.club.replace(/[^a-z0-9]/gi, "_")}.png`,
+            memberCap: c.memberCap ?? null,
           };
         })
       );

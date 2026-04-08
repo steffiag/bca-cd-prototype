@@ -75,7 +75,6 @@ export default function MorningClubManagement({ setPage, user }) {
   }
 
   try {
-    // Use dbId if available, otherwise use email
     const identifier = club.dbId || club.email;
     
     if (!identifier) {
@@ -300,6 +299,7 @@ const toggleClubSelection = (clubId) => {
             <th>Day</th>
             <th>Time</th>
             <th>5 members</th>
+            <th>Mission Statement</th>
             <th>Status</th>
             <th>View/Edit</th>
             <th>Members</th>
@@ -326,6 +326,7 @@ const toggleClubSelection = (clubId) => {
               <td>{club.day}</td>
               <td>{club.time}</td>
               <td>{club.members}</td>
+              <td>{club.mission || ""}</td>
               <td>{club.status}</td>
               <td>
                 <button onClick={() => { setSelectedClub(club); setIsModalOpen(true); }}>
@@ -390,6 +391,7 @@ const toggleClubSelection = (clubId) => {
                   status: updatedData.status,
                   merge: updatedData.merge,
                   mission: updatedData.mission,
+                  memberCap: updatedData.memberCap !== "" && updatedData.memberCap != null ? Number(updatedData.memberCap) : null,
                 };
 
                 const response = await fetch("/morning-club", {
@@ -430,6 +432,7 @@ const toggleClubSelection = (clubId) => {
                     status: updatedData.status,
                     merge: updatedData.merge,
                     mission: updatedData.mission,
+                    memberCap: updatedData.memberCap !== "" && updatedData.memberCap != null ? Number(updatedData.memberCap) : null,
                   }),
                 });
 

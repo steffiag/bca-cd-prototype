@@ -297,6 +297,7 @@ export default function WednesdayClubManagement({ user }) {
             <th>Advisor</th>
             <th>Meeting Place</th>
             <th>5 members</th>
+            <th>Mission Statement</th>
             <th>Status</th>
             <th>View/Edit</th>
             <th>Members</th>
@@ -320,6 +321,7 @@ export default function WednesdayClubManagement({ user }) {
               <td>{club.advisor}</td>
               <td>{club.room}</td>
               <td>{club.members}</td>
+              <td>{club.mission || ""}</td>
               <td>{club.status}</td>
               <td>
                 <button onClick={() => { setSelectedClub(club); setIsModalOpen(true); }}>
@@ -379,6 +381,7 @@ export default function WednesdayClubManagement({ user }) {
                 req_advisor: "",
                 status: updatedData.status || "Pending",
                 mission: updatedData.mission,
+                memberCap: updatedData.memberCap !== "" && updatedData.memberCap != null ? Number(updatedData.memberCap) : null,
               };
 
               const response = await fetch("/wednesday-club", {
@@ -416,6 +419,7 @@ export default function WednesdayClubManagement({ user }) {
                   members: updatedData.members,
                   status: updatedData.status,
                   mission: updatedData.mission,
+                  memberCap: updatedData.memberCap !== "" && updatedData.memberCap != null ? Number(updatedData.memberCap) : null,
                 }),
               });
 

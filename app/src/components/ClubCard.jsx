@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 export default function ClubCard({ club }) {
   const { currentUser, loading } = useAuth();
   const [joined, setJoined] = useState(false);
-  const [memberCount, setMemberCount] = useState(club.members || 0);
+  const [memberCount, setMemberCount] = useState(0);
 
   // Check if user is already enrolled
   useEffect(() => {
@@ -100,10 +100,16 @@ export default function ClubCard({ club }) {
         <div className="club-card-overlay">
           <h3>{club.name}</h3>
           <p className="mission">{club.mission}</p>
-          <p className="members">Members: {memberCount}</p>
+          <p className="members">
+            Members: {memberCount}{club.memberCap ? ` / ${club.memberCap}` : ""}
+          </p>
           {joined ? (
             <button className="leave-btn" onClick={handleLeave} disabled={loading || !currentUser}>
               LEAVE
+            </button>
+          ) : club.memberCap != null && (club.memberCap === 0 || memberCount >= club.memberCap) ? (
+            <button className="join-btn" disabled style={{ opacity: 0.5, cursor: "not-allowed" }}>
+              FULL
             </button>
           ) : (
             <button className="join-btn" onClick={handleJoin} disabled={loading || !currentUser}>

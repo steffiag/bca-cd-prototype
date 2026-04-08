@@ -399,6 +399,7 @@ app.get("/wednesday-club", async (req, res) => {
       status: club.status,
       source: club.source,
       mission: club.mission || "",
+      memberCap: club.member_cap ?? null,
     }));
 
     res.json(clubs);
@@ -410,8 +411,8 @@ app.get("/wednesday-club", async (req, res) => {
 
 app.post("/wednesday-club", async (req, res) => {
   try {
-    const { club, email, category, advisor, room, members, status, mission } = req.body;
-    
+    const { club, email, category, advisor, room, members, status, mission, memberCap } = req.body;
+
     const newClub = await db.WednesdayClub.create({
       club_name: club,
       leader_email: email,
@@ -421,6 +422,7 @@ app.post("/wednesday-club", async (req, res) => {
       members_raw: members,
       status: status || "Pending",
       mission: mission || "",
+      member_cap: memberCap || null,
       source: "manual",
     });
 
@@ -486,6 +488,7 @@ app.get("/morning-club", async (req, res) => {
       merge: club.merge,
       source: club.source,
       mission: club.mission || "",
+      memberCap: club.member_cap ?? null,
     }));
 
     res.json(clubs);
@@ -497,8 +500,8 @@ app.get("/morning-club", async (req, res) => {
 
 app.post("/morning-club", async (req, res) => {
   try {
-    const { club, email, category, advisor, room, day, time, members, status, merge, mission } = req.body;
-    
+    const { club, email, category, advisor, room, day, time, members, status, merge, mission, memberCap } = req.body;
+
     const newClub = await db.MorningClub.create({
       club_name: club,
       leader_email: email,
@@ -511,6 +514,7 @@ app.post("/morning-club", async (req, res) => {
       status: status || "Pending",
       merge: merge || "No",
       mission: mission || "",
+      member_cap: memberCap || null,
       source: "manual",
     });
 
@@ -534,6 +538,7 @@ app.get("/approved-morning-clubs", async (req, res) => {
         "mission",
         "photo_file_id",
         "category",
+        "member_cap",
       ],
     });
 
@@ -544,6 +549,7 @@ app.get("/approved-morning-clubs", async (req, res) => {
         mission: c.mission,
         photo: c.photo_file_id,
         category: c.category,
+        memberCap: c.member_cap ?? null,
       }))
     );
   } catch (err) {
@@ -564,6 +570,7 @@ app.get("/approved-wednesday-clubs", async (req, res) => {
         "mission",
         "photo_file_id",
         "category",
+        "member_cap",
       ],
     });
 
@@ -574,6 +581,7 @@ app.get("/approved-wednesday-clubs", async (req, res) => {
         mission: c.mission,
         photo: c.photo_file_id,
         category: c.category,
+        memberCap: c.member_cap ?? null,
       }))
     );
   } catch (err) {
@@ -711,6 +719,7 @@ app.put("/morning-club/:id", async (req, res) => {
       status,
       merge,
       mission,
+      memberCap,
     } = req.body;
 
     const clubToUpdate = await db.MorningClub.findByPk(id);
@@ -730,6 +739,7 @@ app.put("/morning-club/:id", async (req, res) => {
       status,
       merge,
       mission,
+      member_cap: memberCap !== undefined ? memberCap : clubToUpdate.member_cap,
     });
 
     res.json({ success: true, club: clubToUpdate });
@@ -742,7 +752,7 @@ app.put("/morning-club/:id", async (req, res) => {
 app.put("/wednesday-club/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { club, email, category, advisor, room, members, status, mission } = req.body;
+    const { club, email, category, advisor, room, members, status, mission, memberCap } = req.body;
 
     const clubToUpdate = await db.WednesdayClub.findByPk(id);
     if (!clubToUpdate) {
@@ -758,6 +768,7 @@ app.put("/wednesday-club/:id", async (req, res) => {
       members_raw: members,
       status,
       mission,
+      member_cap: memberCap !== undefined ? memberCap : clubToUpdate.member_cap,
     });
 
     res.json({ success: true, club: clubToUpdate });
@@ -839,17 +850,15 @@ app.post('/send-merge-emails', async (req, res) => {
         to: recipients,
         subject: `Merge suggestion: ${merge.clubA} + ${merge.clubB}`,
         text: `Hello!
-        After reviewing club proposals, I noticed that your clubs have similar missions and activities. I suggest you consider merging your clubs to make your efforts even stronger.
+        After reviewing club proposals, we noticed that your clubs have similar missions and activities. We suggest considering a potential merge to make your efforts even stronger.
 
         Clubs involved:
         - ${merge.clubA}
         - ${merge.clubB}
 
         Both club leaders are cc'd on this email. Please coordinate with each other and let us know what you decide.
-        In case a decision cannot be reached regarding the merge or you have any additional questions, please come see me in Room 152.
 
-        Thank you for your collaboration and dedication to your clubs!
-        Ms. Kim`
+        Thank you for your collaboration and dedication to your clubs!`
       });
       console.log('Email send result:', info);
     } catch (err) {
@@ -890,6 +899,15 @@ app.post("/club-enrollments", async (req, res) => {
     });
     if (already) {
       return res.status(400).json({ success: false, error: "Already enrolled in this club" });
+    }
+
+    const ClubModel = club_type === "morning" ? db.MorningClub : db.WednesdayClub;
+    const clubRecord = await ClubModel.findByPk(club_id);
+    if (clubRecord?.member_cap != null) {
+      const currentCount = await db.ClubEnrollment.count({ where: { club_id, club_type } });
+      if (clubRecord.member_cap === 0 || currentCount >= clubRecord.member_cap) {
+        return res.status(400).json({ success: false, error: "This club is not open for sign-ups" });
+      }
     }
 
     const enrollment = await db.ClubEnrollment.create({ user_id: actualUserId, club_id, club_type });
@@ -963,7 +981,7 @@ app.get("/club/:club_id/members", async (req, res) => {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(express.static(path.join(__dirname, "../dist")));  // ← add this
+app.use(express.static(path.join(__dirname, "../dist"))); 
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "../dist", "index.html"));
 });

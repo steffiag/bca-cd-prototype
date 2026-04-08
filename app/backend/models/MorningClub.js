@@ -62,6 +62,10 @@ export default (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: true,
       },
+      member_cap: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+      },
       photo_file_id: {
         type: DataTypes.STRING,
         allowNull: true,
