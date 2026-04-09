@@ -444,7 +444,6 @@ setAiMerges(suggestions);
           Track clubs that require administrative monitoring.
         </p> */}
 
-        {/* Add Form */}
         <div
           style={{
             background: "#e7f0fb",
