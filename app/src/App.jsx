@@ -176,6 +176,13 @@ setAiMerges(suggestions);
           </a>
           <a
             href="#"
+            onClick={() => setPage("morning-ai-merge")}
+            className={page === "morning-ai-merge" ? "active" : ""}
+          >
+            AI Merge
+          </a>
+          <a
+            href="#"
             onClick={() => setPage("misdemeanors")}
             className={page === "misdemeanors" ? "active" : ""}
           >
