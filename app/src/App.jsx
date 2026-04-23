@@ -234,6 +234,50 @@ setAiMerges(suggestions);
             >
               Logout
             </button>
+
+            {portal === "admin" && (
+  <button
+    onClick={async () => {
+      const confirmed = window.confirm(
+        "This will permanently delete ALL clubs, teachers, enrollments, misdemeanors, and AI merges. This cannot be undone. Are you sure?"
+      );
+      if (!confirmed) return;
+
+      const doubleConfirmed = window.confirm(
+        "Are you absolutely sure? This is irreversible."
+      );
+      if (!doubleConfirmed) return;
+
+      try {
+        const res = await fetch("/reset-all-data", {
+          method: "DELETE",
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert("All data has been cleared.");
+          window.location.reload();
+        } else {
+          alert("Reset failed: " + data.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Reset failed. Check console.");
+      }
+    }}
+    style={{
+      background: "#d9534f",
+      color: "white",
+      border: "none",
+      padding: "6px 12px",
+      borderRadius: "6px",
+      cursor: "pointer",
+      marginLeft: "10px",
+    }}
+  >
+    🗑️ End of Year Reset
+  </button>
+)}
           </div>
         )} 
 

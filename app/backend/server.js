@@ -134,6 +134,22 @@ app.post("/upload-club-image/:clubName", upload.single("image"), (req, res) => {
 });
 const PORT = process.env.PORT || 4000;
 
+// delete all function endpoint
+app.delete("/reset-all-data", async (req, res) => {
+  try {
+    await db.ClubEnrollment.destroy({ where: {} });
+    await db.MorningClub.destroy({ where: {} });
+    await db.WednesdayClub.destroy({ where: {} });
+    await db.Teacher.destroy({ where: {} });
+    await db.AiMerge.destroy({ where: {} });
+    await db.Misdemeanor.destroy({ where: {} });
+    res.json({ success: true, message: "All data cleared successfully." });
+  } catch (err) {
+    console.error("Reset failed:", err);
+    res.status(500).json({ error: "Failed to reset data." });
+  }
+});
+
 // app.get("/", (req, res) => {
 //   res.send("BCA Club Dashboard backend is running!");
 // });
