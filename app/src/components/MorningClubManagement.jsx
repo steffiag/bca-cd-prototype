@@ -210,24 +210,6 @@ const toggleClubSelection = (clubId) => {
           </button>
           <button>Submit</button>
         </div>
-
-        <div className="tools">
-          <strong>Other Tools:</strong><br />
-          <select
-            onChange={(e) => {
-              if (e.target.value === "ai-merge") {
-                setPage("morning-ai-merge");
-              } else if (e.target.value === "add" && isTeacher) {
-                handleAddNewClub();
-                e.target.value = "";
-              }
-            }}
-          >
-            <option value="">-- Select --</option>
-            {isTeacher && <option value="add">Add Club</option>}
-            <option value="ai-merge">AI Merge</option>
-          </select>
-        </div>
       </div>
 
       {/* Add New Club Button - Only visible for teachers */}
