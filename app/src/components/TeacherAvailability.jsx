@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import TeacherModal from "./TeacherModal";
 
-// ─── Inline styles (no external CSS needed) ───────────────────────────────────
+// ─── Inline styles ────────────────────────────────────────────────────────────
 const styles = {
   root: {
     fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
@@ -153,6 +153,17 @@ const styles = {
     background: avail ? "#d3f9d8" : "#fff0f0",
     color: avail ? "#2f9e44" : "#e03131",
   }),
+  holdBadge: (canHold) => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.35rem",
+    padding: "0.22rem 0.7rem",
+    borderRadius: "999px",
+    fontSize: "0.75rem",
+    fontWeight: 700,
+    background: canHold ? "#fff3cd" : "#f1f3f5",
+    color: canHold ? "#e67700" : "#868e96",
+  }),
   assignBadge: (assigned) => ({
     display: "inline-block",
     padding: "0.2rem 0.6rem",
@@ -185,7 +196,7 @@ const styles = {
     borderRadius: "18px",
     padding: "2rem",
     width: "100%",
-    maxWidth: "560px",
+    maxWidth: "900px",
     maxHeight: "90vh",
     overflowY: "auto",
     boxShadow: "0 20px 60px rgba(0,0,0,0.18)",
@@ -229,14 +240,19 @@ const styles = {
     animation: "slideIn 0.2s ease",
   }),
   dropZone: (dragging) => ({
-    border: `2px dashed ${dragging ? "#3b5bdb" : "#c8d0e7"}`,
-    borderRadius: "10px",
-    padding: "2rem",
-    textAlign: "center",
-    background: dragging ? "#e8eeff" : "#f8f9fe",
-    cursor: "pointer",
-    transition: "all 0.2s",
-    marginBottom: "1rem",
+  border: `2px dashed ${dragging ? "#3b5bdb" : "#c8d0e7"}`,
+  borderRadius: "10px",
+  padding: "2rem",
+  textAlign: "center",
+  background: dragging ? "#e8eeff" : "#f8f9fe",
+  cursor: "pointer",
+  transition: "all 0.2s",
+  marginBottom: "1rem",
+  minHeight: "120px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
   }),
 };
 
@@ -249,33 +265,105 @@ function Toast({ message, type, onClose }) {
   return <div style={styles.toast(type)}>{message}</div>;
 }
 
+// ─── CSV column aliases ───────────────────────────────────────────────────────
+// Maps common column header variations → internal field names
+const COLUMN_ALIASES = {
+  name:           ["name", "teacher name", "full name", "teacher"],
+  email:          ["email", "email address", "e-mail"],
+  room:           ["room", "rm", "rm #", "rm#", "room #", "room number"],
+  available:      ["available", "availability", "available?"],
+  can_hold_club:  ["can hold club", "can_hold_club", "holds club", "hold club", "status"],
+  department:     ["department", "dept", "dept."],
+  assigned_club:  ["assigned club", "assigned_club", "club assigned", "assigned"],
+};
+
+function normalizeHeader(raw) {
+  const lower = raw.trim().toLowerCase();
+  for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
+    if (aliases.includes(lower)) return field;
+  }
+  return lower; // fall back to the raw lowercase header
+}
+
 // ─── Bulk Import Modal ────────────────────────────────────────────────────────
 function BulkImportModal({ onClose, onImport }) {
-  const [tab, setTab] = useState("csv");
-  const [csvData, setCsvData] = useState(null);
-  const [csvPreview, setCsvPreview] = useState([]);
-  const [batchText, setBatchText] = useState("");
+  const [tab, setTab] = useState("batch");
+
+  // CSV tab state
+  const [csvRows, setCsvRows] = useState(null); // array of row objects after parsing
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef();
 
+  // Batch email tab state
+  const [batchText, setBatchText] = useState("");
+
+  // ── Shared editable-preview state ──
+  // previewRows: array of { name, email, room, available, can_hold_club, department, assigned_club }
+  const [previewRows, setPreviewRows] = useState([]);
+
+  function normalizeYesNo(val = "") {
+    return val.trim().toLowerCase() === "yes" ? "Yes" : "No";
+  }
+
+  function splitCSVLine(line) {
+  const fields = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      // escaped quote "" inside a quoted field
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === "," && !inQuotes) {
+      fields.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+  }
   const parseCSV = (text) => {
-    const lines = text.trim().split("\n").filter(Boolean);
-    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
-    return lines.slice(1).map((line) => {
-      const vals = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
-      const obj = {};
-      headers.forEach((h, i) => (obj[h] = vals[i] || ""));
-      return obj;
-    });
-  };
+  const normalized = text.trim().replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalized.split("\n").filter(Boolean);
+  if (lines.length < 2) return [];
+
+  // ← use splitCSVLine instead of line.split(",")
+  const rawHeaders = splitCSVLine(lines[0]).map((h) => h.replace(/^"|"$/g, ""));
+  const headers = rawHeaders.map(normalizeHeader);
+
+  return lines.slice(1).map((line) => {
+    const vals = splitCSVLine(line).map((v) => v.replace(/^"|"$/g, ""));
+    const obj = {};
+    headers.forEach((h, i) => (obj[h] = vals[i] || ""));
+    return {
+      name:          obj.name          || "",
+      email:         obj.email         || "",
+      room:          obj.room          || "",
+      available:     normalizeYesNo(obj.available),
+      can_hold_club: normalizeYesNo(obj.can_hold_club),
+      department:    obj.department    || "",
+      assigned_club: obj.assigned_club || "",
+    };
+  });
+ };
+
+ 
 
   const handleFile = (file) => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (e) => {
       const rows = parseCSV(e.target.result);
-      setCsvData(rows);
-      setCsvPreview(rows.slice(0, 5));
+      setCsvRows(rows);
+      setPreviewRows(rows.map((r) => ({ ...r })));
     };
     reader.readAsText(file);
   };
@@ -286,18 +374,49 @@ function BulkImportModal({ onClose, onImport }) {
     handleFile(e.dataTransfer.files[0]);
   };
 
-  const parseBatch = () => {
-    return batchText
+  // Update a single cell in the preview
+  const updatePreviewCell = (rowIdx, field, value) => {
+    setPreviewRows((prev) =>
+      prev.map((r, i) => (i === rowIdx ? { ...r, [field]: value } : r))
+    );
+  };
+
+  // Delete a row from preview
+  const deletePreviewRow = (rowIdx) => {
+    setPreviewRows((prev) => prev.filter((_, i) => i !== rowIdx));
+  };
+
+  // Add a blank row
+  const addBlankRow = () => {
+    setPreviewRows((prev) => [
+      ...prev,
+      { name: "", email: "", room: "", available: "No", can_hold_club: "No", department: "", assigned_club: "" },
+    ]);
+  };
+
+  const parseBatch = () =>
+    batchText
       .split("\n")
-      .map((line) => line.trim())
+      .map((l) => l.trim())
       .filter(Boolean)
-      .map((email) => ({ email, name: "", room: "", department: "", available: "No" }));
+      .map((email) => ({
+        email,
+        name: "",
+        room: "",
+        available: "No",
+        can_hold_club: "No",
+        department: "",
+        assigned_club: "",
+      }));
+
+  const handleLoadBatch = () => {
+    const rows = parseBatch();
+    setPreviewRows(rows.map((r) => ({ ...r })));
   };
 
   const handleImport = () => {
-    const rows = tab === "csv" ? csvData : parseBatch();
-    if (!rows || rows.length === 0) return;
-    onImport(rows);
+    if (!previewRows.length) return;
+    onImport(previewRows);
     onClose();
   };
 
@@ -313,85 +432,174 @@ function BulkImportModal({ onClose, onImport }) {
     transition: "all 0.15s",
   });
 
+  // Inline cell style
+  const cellInput = {
+    padding: "0.28rem 0.5rem",
+    borderRadius: "6px",
+    border: "1.5px solid #e2e8f0",
+    fontSize: "0.8rem",
+    width: "100%",
+    boxSizing: "border-box",
+    outline: "none",
+  };
+  const cellSelect = { ...cellInput, cursor: "pointer", background: "#fff" };
+
+  const PREVIEW_COLS = [
+    { key: "name",          label: "Name" },
+    { key: "email",         label: "Email" },
+    { key: "room",          label: "Rm #" },
+    { key: "available",     label: "Available?" },
+    { key: "can_hold_club", label: "Can Hold Club?" },
+    { key: "department",    label: "Department" },
+    { key: "assigned_club", label: "Assigned Club" },
+  ];
+
   return (
     <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={styles.modal}>
         <h2 style={styles.modalTitle}>📥 Bulk Import Teachers</h2>
 
-        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem" }}>
-          <button style={tabBtn("csv")} onClick={() => setTab("csv")}>CSV Upload</button>
-          <button style={tabBtn("batch")} onClick={() => setTab("batch")}>Batch Email Entry</button>
-        </div>
-
-        {tab === "csv" ? (
-          <>
-            <div
-              style={styles.dropZone(dragging)}
-              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => fileRef.current.click()}
-            >
-              <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📂</div>
-              <div style={{ fontWeight: 600, color: "#3b5bdb" }}>Drop CSV here or click to browse</div>
-              <div style={{ fontSize: "0.78rem", color: "#8390a2", marginTop: "0.3rem" }}>
-                Expected columns: name, email, room, department
-              </div>
-              <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={(e) => handleFile(e.target.files[0])} />
-            </div>
-
-            {csvPreview.length > 0 && (
-              <div style={{ overflowX: "auto", marginBottom: "1rem" }}>
-                <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#8390a2", marginBottom: "0.5rem" }}>
-                  PREVIEW ({csvData.length} rows)
-                </div>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-                  <thead>
-                    <tr>{["name","email","room","department"].map(h => (
-                      <th key={h} style={{ textAlign: "left", padding: "0.3rem 0.5rem", background: "#f8f9fe", borderBottom: "1.5px solid #e2e8f0", color: "#555", textTransform: "uppercase", fontSize: "0.7rem" }}>{h}</th>
-                    ))}</tr>
-                  </thead>
-                  <tbody>
-                    {csvPreview.map((r, i) => (
-                      <tr key={i}>
-                        {["name","email","room","department"].map(h => (
-                          <td key={h} style={{ padding: "0.3rem 0.5rem", borderBottom: "1px solid #f0f2f8" }}>{r[h] || "—"}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {csvData.length > 5 && (
-                  <div style={{ fontSize: "0.75rem", color: "#8390a2", marginTop: "0.4rem" }}>
-                    ...and {csvData.length - 5} more rows
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        ) : (
+        {/* Batch email tab (input phase) */}
+        {previewRows.length === 0 && (
           <div style={styles.inputGroup}>
             <label style={styles.inputLabel}>Paste emails (one per line)</label>
             <textarea
               style={styles.textarea}
-              placeholder={"teacher1@school.edu\nteacher2@school.edu\nteacher3@school.edu"}
+              placeholder={"teacher1@school.edu\nteacher2@school.edu"}
               value={batchText}
               onChange={(e) => setBatchText(e.target.value)}
             />
-            <div style={{ fontSize: "0.75rem", color: "#8390a2" }}>
-              {batchText.split("\n").filter(l => l.trim()).length} emails entered
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: "0.75rem", color: "#8390a2" }}>
+                {batchText.split("\n").filter((l) => l.trim()).length} emails entered
+              </span>
+              <button
+                style={styles.btn(batchText.trim() ? "primary" : "disabled")}
+                disabled={!batchText.trim()}
+                onClick={handleLoadBatch}
+              >
+                Preview →
+              </button>
             </div>
           </div>
         )}
 
+        {/* ── Editable Preview Table ── */}
+        {previewRows.length > 0 && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.6rem" }}>
+              <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "#8390a2" }}>
+                PREVIEW — {previewRows.length} row{previewRows.length !== 1 ? "s" : ""} &nbsp;
+                <span style={{ color: "#3b5bdb", fontWeight: 400 }}>(click any cell to edit)</span>
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button
+                  style={{ ...styles.btn("ghost"), padding: "0.3rem 0.75rem", fontSize: "0.77rem" }}
+                  onClick={addBlankRow}
+                >
+                  + Add Row
+                </button>
+                <button
+                  style={{ ...styles.btn("ghost"), padding: "0.3rem 0.75rem", fontSize: "0.77rem" }}
+                  onClick={() => { setCsvRows(null); setPreviewRows([]); }}
+                >
+                  ↩ Re-upload
+                </button>
+              </div>
+            </div>
+
+            <div style={{ overflowX: "auto", marginBottom: "1rem", border: "1.5px solid #e8ecf5", borderRadius: "10px" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+                <thead>
+                  <tr>
+                    {PREVIEW_COLS.map((col) => (
+                      <th
+                        key={col.key}
+                        style={{
+                          textAlign: "left",
+                          padding: "0.45rem 0.6rem",
+                          background: "#f8f9fe",
+                          borderBottom: "1.5px solid #e8ecf5",
+                          color: "#555",
+                          textTransform: "uppercase",
+                          fontSize: "0.68rem",
+                          fontWeight: 700,
+                          letterSpacing: "0.05em",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {col.label}
+                      </th>
+                    ))}
+                    <th style={{ background: "#f8f9fe", borderBottom: "1.5px solid #e8ecf5", padding: "0.45rem 0.6rem", width: "36px" }} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.map((row, i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? "#fff" : "#fafbff" }}>
+                      {PREVIEW_COLS.map((col) => (
+                        <td key={col.key} style={{ padding: "0.35rem 0.5rem", borderBottom: "1px solid #f0f2f8" }}>
+                          {col.key === "available" || col.key === "can_hold_club" ? (
+                            <select
+                              value={row[col.key]}
+                              onChange={(e) => updatePreviewCell(i, col.key, e.target.value)}
+                              style={cellSelect}
+                            >
+                              <option value="Yes">Yes</option>
+                              <option value="No">No</option>
+                            </select>
+                          ) : (
+                            <input
+                              type={col.key === "email" ? "email" : "text"}
+                              value={row[col.key]}
+                              onChange={(e) => updatePreviewCell(i, col.key, e.target.value)}
+                              style={cellInput}
+                              placeholder={col.label}
+                            />
+                          )}
+                        </td>
+                      ))}
+                      <td style={{ padding: "0.35rem 0.5rem", borderBottom: "1px solid #f0f2f8", textAlign: "center" }}>
+                        <button
+                          onClick={() => deletePreviewRow(i)}
+                          title="Remove this row"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "1rem",
+                            color: "#fa5252",
+                            padding: "0.1rem",
+                            lineHeight: 1,
+                          }}
+                        >
+                          🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Validation hint */}
+            {previewRows.some((r) => !r.email) && (
+              <div style={{ fontSize: "0.78rem", color: "#fa5252", marginBottom: "0.75rem" }}>
+                ⚠️ Some rows are missing an email — they will be skipped on import.
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Footer buttons */}
         <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end", marginTop: "0.5rem" }}>
           <button style={styles.btn("ghost")} onClick={onClose}>Cancel</button>
           <button
-            style={styles.btn(tab === "csv" ? (csvData ? "primary" : "disabled") : (batchText.trim() ? "primary" : "disabled"))}
+            style={styles.btn(previewRows.length > 0 ? "primary" : "disabled")}
             onClick={handleImport}
-            disabled={tab === "csv" ? !csvData : !batchText.trim()}
+            disabled={previewRows.length === 0}
           >
-            Import Teachers
+            Import {previewRows.length > 0 ? `${previewRows.length} Teacher${previewRows.length !== 1 ? "s" : ""}` : "Teachers"}
           </button>
         </div>
       </div>
@@ -402,23 +610,39 @@ function BulkImportModal({ onClose, onImport }) {
 // ─── Email Preview Modal ──────────────────────────────────────────────────────
 function EmailModal({ unconfirmedTeachers, onClose, onSend }) {
   const [sending, setSending] = useState(false);
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("Reminder: Please Confirm Your Wednesday Club Availability");
+  const [emailBody, setEmailBody] = useState(
+    `Dear {{teacher_name}},
+
+We noticed you haven't yet confirmed your availability for Wednesday Club supervision this semester.
+
+Please take a moment to log in to the Teacher Portal and update your availability status. This helps us plan club assignments and ensure we have adequate coverage.
+
+If you have any questions or concerns, please don't hesitate to reach out.
+
+Thank you for your cooperation!
+
+Best regards,
+The Administration Team`
+  );
 
   const handleSend = async () => {
     setSending(true);
-    await onSend(unconfirmedTeachers);
+    await onSend(unconfirmedTeachers, { subject: emailSubject, body: emailBody });
     setSending(false);
     onClose();
   };
 
   return (
     <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div style={styles.modal}>
+      <div style={{ ...styles.modal, maxWidth: "700px" }}>
         <h2 style={styles.modalTitle}>📧 Send Availability Reminder</h2>
         <p style={{ color: "#555", fontSize: "0.88rem", marginBottom: "1.2rem" }}>
-          The following <strong>{unconfirmedTeachers.length}</strong> teacher{unconfirmedTeachers.length !== 1 ? "s" : ""} haven't confirmed their availability and will receive a reminder email:
+          The following <strong>{unconfirmedTeachers.length}</strong> teacher{unconfirmedTeachers.length !== 1 ? "s" : ""} will receive a reminder email:
         </p>
 
-        <div style={{ maxHeight: "240px", overflowY: "auto", marginBottom: "1.25rem", borderRadius: "8px", border: "1.5px solid #e2e8f0" }}>
+        <div style={{ maxHeight: "180px", overflowY: "auto", marginBottom: "1.25rem", borderRadius: "8px", border: "1.5px solid #e2e8f0" }}>
           {unconfirmedTeachers.map((t, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.65rem 1rem", borderBottom: i < unconfirmedTeachers.length - 1 ? "1px solid #f0f2f8" : "none" }}>
               <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#e8eeff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "#3b5bdb", fontSize: "0.85rem" }}>
@@ -433,9 +657,48 @@ function EmailModal({ unconfirmedTeachers, onClose, onSend }) {
         </div>
 
         {unconfirmedTeachers.length === 0 && (
-          <div style={{ textAlign: "center", color: "#12b886", fontWeight: 600, padding: "1rem" }}>
+          <div style={{ textAlign: "center", color: "#12b886", fontWeight: 600, padding: "1rem", marginBottom: "1.25rem" }}>
             ✅ All teachers have confirmed their availability!
           </div>
+        )}
+
+        {unconfirmedTeachers.length > 0 && (
+          <>
+            <button
+              style={{ ...styles.btn("ghost"), width: "100%", marginBottom: "1rem", justifyContent: "center" }}
+              onClick={() => setShowCustomize(!showCustomize)}
+            >
+              {showCustomize ? "▼ Hide Email Customization" : "▶ Customize Email (Optional)"}
+            </button>
+
+            {showCustomize && (
+              <div style={{ marginBottom: "1.5rem", padding: "1rem", background: "#f8f9fe", borderRadius: "10px" }}>
+                <div style={styles.inputGroup}>
+                  <label style={styles.inputLabel}>Email Subject</label>
+                  <input
+                    style={styles.input}
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    placeholder="Email subject line"
+                  />
+                </div>
+
+                <div style={styles.inputGroup}>
+                  <label style={styles.inputLabel}>Email Message</label>
+                  <div style={{ fontSize: "0.72rem", color: "#8390a2", marginBottom: "0.4rem" }}>
+                    💡 Replace <code style={{ background: "#fff", padding: "0.1rem 0.4rem", borderRadius: "4px" }}>{"{{teacher_name}}"}</code> in order to personalize with each teacher's name
+                  </div>
+                  <textarea
+                    style={{ ...styles.textarea, background: "#fff" }}
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    placeholder="Email message body"
+                    rows={10}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
@@ -456,7 +719,7 @@ function EmailModal({ unconfirmedTeachers, onClose, onSend }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function TeacherAvailability({ user }) {
   const [teachers, setTeachers] = useState([]);
-  const [filters, setFilters] = useState({ available: "", assigned: "" });
+  const [filters, setFilters] = useState({ available: "", assigned: "", canHold: "" });
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
@@ -472,30 +735,34 @@ export default function TeacherAvailability({ user }) {
   const showToast = (message, type = "success") => setToast({ message, type });
 
   const fetchTeachers = () => {
-    fetch("/teacher-availability", { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => setTeachers(data))
-      .catch((err) => console.error(err));
-  };
+  fetch("/teacher-availability", { credentials: "include" })
+    .then((res) => res.json())
+    .then((data) => setTeachers(Array.isArray(data) ? data : [])) // ← safety check
+    .catch((err) => console.error(err));
+};
 
-  const totalTeachers = teachers.length;
-  const confirmedCount = teachers.filter((t) => t.availableBool).length;
-  const assignedCount = teachers.filter((t) => t.assigned).length;
+  const totalTeachers       = teachers.length;
+  const confirmedCount      = teachers.filter((t) => t.availableBool).length;
+  const assignedCount       = teachers.filter((t) => t.assigned).length;
   const unconfirmedTeachers = teachers.filter((t) => !t.availableBool);
 
   const filteredTeachers = teachers.filter((t) => {
     const availableMatch = filters.available ? t.available === filters.available : true;
-    const assignedMatch = filters.assigned ? (t.assigned ? "Yes" : "No") === filters.assigned : true;
-    const searchMatch = search
+    const assignedMatch  = filters.assigned  ? (t.assigned ? "Yes" : "No") === filters.assigned : true;
+    const canHoldMatch   = filters.canHold   ? t.can_hold_club === filters.canHold : true;
+    const searchMatch    = search
       ? t.name?.toLowerCase().includes(search.toLowerCase()) ||
         t.email?.toLowerCase().includes(search.toLowerCase()) ||
         t.department?.toLowerCase().includes(search.toLowerCase())
       : true;
-    return availableMatch && assignedMatch && searchMatch;
+    return availableMatch && assignedMatch && canHoldMatch && searchMatch;
   });
 
   const handleAddNewTeacher = () => {
-    setSelectedTeacher({ name: "", email: "", room: "", available: "No", availableBool: false, department: "", assigned: null, isNew: true });
+    setSelectedTeacher({
+      name: "", email: "", room: "", available: "No", availableBool: false,
+      department: "", assigned: null, can_hold_club: "No", isNew: true,
+    });
     setIsModalOpen(true);
   };
 
@@ -545,50 +812,53 @@ export default function TeacherAvailability({ user }) {
     } catch { showToast("Error updating assignment", "error"); }
   };
 
-  const handleSendEmails = async (recipientList) => {
+  const handleSendEmails = async (recipientList, emailConfig) => {
     try {
       const res = await fetch("/send-availability-reminders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ teachers: recipientList.map((t) => ({ id: t.id, email: t.email, name: t.name })) }),
+        body: JSON.stringify({ 
+          teachers: recipientList.map((t) => ({ id: t.id, email: t.email, name: t.name })),
+          subject: emailConfig.subject,
+          body: emailConfig.body
+        }),
       });
       if (res.ok) showToast(`Emails sent to ${recipientList.length} teacher${recipientList.length !== 1 ? "s" : ""}!`);
       else showToast("Failed to send emails", "error");
-    } catch {
-      showToast("Error sending emails", "error");
-    }
+    } catch { showToast("Error sending emails", "error"); }
   };
 
+  // ── Bulk import ──
   const handleBulkImport = async (rows) => {
     let successCount = 0;
     for (const row of rows) {
+      if (!row.email) continue; // skip rows with no email
       try {
         const res = await fetch("/teacher-availability", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            name: row.name || "",
-            email: row.email || "",
-            room: row.room || "",
-            available: row.available || "No",
-            department: row.department || "",
-            assigned_club: null,
+            name:          row.name          || "",
+            email:         row.email         || "",
+            room:          row.room          || "",
+            available:     row.available     || "No",
+            can_hold_club: row.can_hold_club || "No",
+            department:    row.department    || "",
+            assigned_club: row.assigned_club || null,
           }),
         });
         if (res.ok) successCount++;
       } catch {}
     }
     fetchTeachers();
-    showToast(`Imported ${successCount} of ${rows.length} teachers`);
+    showToast(`Imported ${successCount} of ${rows.filter((r) => r.email).length} teachers`);
   };
 
   const handleSave = async (updatedData) => {
     const isNew = selectedTeacher?.isNew;
-    const url = isNew
-      ? "/teacher-availability"
-      : `/teacher-availability/${selectedTeacher.id}`;
+    const url    = isNew ? "/teacher-availability" : `/teacher-availability/${selectedTeacher.id}`;
     const method = isNew ? "POST" : "PUT";
     try {
       const res = await fetch(url, {
@@ -596,11 +866,12 @@ export default function TeacherAvailability({ user }) {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          name: updatedData.name,
-          email: updatedData.email,
-          room: updatedData.room,
-          available: updatedData.available,
-          department: updatedData.department,
+          name:          updatedData.name,
+          email:         updatedData.email,
+          room:          updatedData.room,
+          available:     updatedData.available,
+          can_hold_club: updatedData.can_hold_club || "No",
+          department:    updatedData.department,
           assigned_club: updatedData.assigned || null,
         }),
       });
@@ -692,6 +963,14 @@ export default function TeacherAvailability({ user }) {
           </select>
         </div>
         <div style={styles.filterGroup}>
+          <label style={styles.filterLabel}>Can Hold Club</label>
+          <select style={styles.select} value={filters.canHold} onChange={(e) => setFilters({ ...filters, canHold: e.target.value })}>
+            <option value="">All</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div style={styles.filterGroup}>
           <label style={styles.filterLabel}>Assigned</label>
           <select style={styles.select} value={filters.assigned} onChange={(e) => setFilters({ ...filters, assigned: e.target.value })}>
             <option value="">All</option>
@@ -699,7 +978,7 @@ export default function TeacherAvailability({ user }) {
             <option value="No">Unassigned</option>
           </select>
         </div>
-        <button style={styles.btn("ghost")} onClick={() => { setFilters({ available: "", assigned: "" }); setSearch(""); }}>Clear</button>
+        <button style={styles.btn("ghost")} onClick={() => { setFilters({ available: "", assigned: "", canHold: "" }); setSearch(""); }}>Clear</button>
         <div style={styles.spacer} />
         <div style={{ fontSize: "0.8rem", color: "#8390a2", fontWeight: 600 }}>
           Showing {filteredTeachers.length} of {totalTeachers} teachers
@@ -711,7 +990,7 @@ export default function TeacherAvailability({ user }) {
         <table style={styles.table}>
           <thead>
             <tr>
-              {["Available?", "Name", "Email", "Rm #", "Status", "Department", "Assigned Club", "Actions"].map((h) => (
+              {["Available?", "Can Hold Club?", "Name", "Email", "Rm #", "Department", "Assigned Club", "Actions"].map((h) => (
                 <th key={h} style={styles.th}>{h}</th>
               ))}
             </tr>
@@ -727,16 +1006,31 @@ export default function TeacherAvailability({ user }) {
               const canEdit = isTeacher && teacher.email === currentUserEmail;
               return (
                 <tr key={teacher.id || i}>
+                  {/* Available checkbox */}
                   <td style={styles.td}>
-                    <input
-                      type="checkbox"
-                      checked={teacher.availableBool}
-                      onChange={() => handleAvailabilityCheckbox(teacher)}
-                      disabled={!canEdit}
-                      style={styles.checkbox(canEdit)}
-                      title={canEdit ? "Click to confirm your availability" : "You can only confirm your own availability"}
-                    />
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <input
+                        type="checkbox"
+                        checked={teacher.availableBool}
+                        onChange={() => handleAvailabilityCheckbox(teacher)}
+                        disabled={!canEdit}
+                        style={styles.checkbox(canEdit)}
+                        title={canEdit ? "Click to confirm your availability" : "You can only confirm your own availability"}
+                      />
+                      <span style={styles.availBadge(teacher.availableBool)}>
+                        {teacher.availableBool ? "✓ Yes" : "✗ No"}
+                      </span>
+                    </div>
                   </td>
+
+                  {/* Can Hold Club badge */}
+                  <td style={styles.td}>
+                    <span style={styles.holdBadge(teacher.can_hold_club === "Yes")}>
+                      {teacher.can_hold_club === "Yes" ? "✓ Yes" : "✗ No"}
+                    </span>
+                  </td>
+
+                  {/* Name */}
                   <td style={{ ...styles.td, fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                       <div style={{ width: "30px", height: "30px", borderRadius: "50%", background: teacher.availableBool ? "#d3f9d8" : "#fff0f0", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "0.8rem", color: teacher.availableBool ? "#2f9e44" : "#e03131", flexShrink: 0 }}>
@@ -745,14 +1039,12 @@ export default function TeacherAvailability({ user }) {
                       {teacher.name}
                     </div>
                   </td>
+
                   <td style={{ ...styles.td, color: "#555" }}>{teacher.email}</td>
                   <td style={styles.td}>{teacher.room || "—"}</td>
-                  <td style={styles.td}>
-                    <span style={styles.availBadge(teacher.availableBool)}>
-                      {teacher.availableBool ? "✓ Yes" : "✗ No"}
-                    </span>
-                  </td>
                   <td style={styles.td}>{teacher.department || "—"}</td>
+
+                  {/* Assigned Club */}
                   <td style={styles.td}>
                     {teacher.availableClubs?.length > 0 ? (
                       <select
@@ -771,6 +1063,8 @@ export default function TeacherAvailability({ user }) {
                       </span>
                     )}
                   </td>
+
+                  {/* Actions */}
                   <td style={styles.td}>
                     <div style={{ display: "flex", gap: "0.4rem" }}>
                       <button

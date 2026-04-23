@@ -2,23 +2,25 @@ import { useState, useEffect } from "react";
 
 export default function TeacherModal({ teacher, isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState({
-    name: teacher.name || "",
-    email: teacher.email || "",
-    room: teacher.room || "",
-    available: teacher.available || "No",
-    department: teacher.department || "",
-    assigned: teacher.assigned || "",
+    name:          teacher.name          || "",
+    email:         teacher.email         || "",
+    room:          teacher.room          || "",
+    available:     teacher.available     || "No",
+    can_hold_club: teacher.can_hold_club || "No",
+    department:    teacher.department    || "",
+    assigned:      teacher.assigned      || "",
   });
 
   useEffect(() => {
     if (teacher && isOpen) {
       setFormData({
-        name: teacher.name || "",
-        email: teacher.email || "",
-        room: teacher.room || "",
-        available: teacher.available || "No",
-        department: teacher.department || "",
-        assigned: teacher.assigned || "",
+        name:          teacher.name          || "",
+        email:         teacher.email         || "",
+        room:          teacher.room          || "",
+        available:     teacher.available     || "No",
+        can_hold_club: teacher.can_hold_club || "No",
+        department:    teacher.department    || "",
+        assigned:      teacher.assigned      || "",
       });
     }
   }, [teacher, isOpen]);
@@ -89,43 +91,59 @@ export default function TeacherModal({ teacher, isOpen, onClose, onSave }) {
 
         <div style={fieldStyle}>
           <label>Name:</label>
-          <input 
-            type="text" 
-            name="name" 
-            value={formData.name} 
-            onChange={handleChange} 
-            style={inputStyle} 
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            style={inputStyle}
+            placeholder="e.g. Mr. Russo"
           />
         </div>
 
         <div style={fieldStyle}>
           <label>Email:</label>
-          <input 
-            type="email" 
-            name="email" 
-            value={formData.email} 
-            onChange={handleChange} 
-            style={inputStyle} 
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            style={inputStyle}
+            placeholder="e.g. chrrus@bergen.org"
           />
         </div>
 
         <div style={fieldStyle}>
           <label>Room Number:</label>
-          <input 
-            type="text" 
-            name="room" 
-            value={formData.room} 
-            onChange={handleChange} 
-            style={inputStyle} 
+          <input
+            type="text"
+            name="room"
+            value={formData.room}
+            onChange={handleChange}
+            style={inputStyle}
+            placeholder="e.g. 42"
           />
         </div>
 
         <div style={fieldStyle}>
-          <label>Available:</label>
-          <select 
-            name="available" 
-            value={formData.available} 
-            onChange={handleChange} 
+          <label>Available? <span style={{ fontSize: "12px", color: "#8390a2", fontWeight: 400 }}>(willing to supervise)</span></label>
+          <select
+            name="available"
+            value={formData.available}
+            onChange={handleChange}
+            style={selectStyle}
+          >
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+          </select>
+        </div>
+
+        <div style={fieldStyle}>
+          <label>Can Hold Club? <span style={{ fontSize: "12px", color: "#8390a2", fontWeight: 400 }}>(able to run/host a club)</span></label>
+          <select
+            name="can_hold_club"
+            value={formData.can_hold_club}
+            onChange={handleChange}
             style={selectStyle}
           >
             <option value="No">No</option>
@@ -135,24 +153,24 @@ export default function TeacherModal({ teacher, isOpen, onClose, onSave }) {
 
         <div style={fieldStyle}>
           <label>Department:</label>
-          <input 
-            type="text" 
-            name="department" 
-            value={formData.department} 
-            onChange={handleChange} 
-            style={inputStyle} 
-            placeholder="e.g., Mathematics, Science, English"
+          <input
+            type="text"
+            name="department"
+            value={formData.department}
+            onChange={handleChange}
+            style={inputStyle}
+            placeholder="e.g. Mathematics, Science, English"
           />
         </div>
 
         <div style={fieldStyle}>
           <label>Assigned Club:</label>
-          <input 
-            type="text" 
-            name="assigned" 
-            value={formData.assigned} 
-            onChange={handleChange} 
-            style={inputStyle} 
+          <input
+            type="text"
+            name="assigned"
+            value={formData.assigned}
+            onChange={handleChange}
+            style={inputStyle}
             placeholder="Leave empty if unassigned"
           />
         </div>

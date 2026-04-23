@@ -17,7 +17,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-//calculates similarity
+// calculates similarity
 function cosineSimilarity(a, b) {
   const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
   const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
@@ -26,10 +26,6 @@ function cosineSimilarity(a, b) {
 }
 
 dotenv.config();
-
-//const openai = new OpenAI({
-//  apiKey: OPENAI_API_KEY,
-//});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -132,6 +128,7 @@ app.post("/upload-club-image/:clubName", upload.single("image"), (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 const PORT = process.env.PORT || 4000;
 
 // delete all function endpoint
@@ -150,18 +147,20 @@ app.delete("/reset-all-data", async (req, res) => {
   }
 });
 
-// app.get("/", (req, res) => {
-//   res.send("BCA Club Dashboard backend is running!");
-// });
-
 // ============================================
 // TEACHER AVAILABILITY ENDPOINTS
 // ============================================
 
+// Helper: convert "Yes"/"No"/true/false → boolean
+function toBoolean(val) {
+  if (val === true || val === "Yes" || val === "yes") return true;
+  return false;
+}
+
 // Sync teachers from Google Forms
 async function syncTeachers() {
   const responses = await getFormResponses("1E9oTtJjWJhoCKBT69Vx_nEj664jMfQn0cvgWQoF4vyY");
-  
+
   for (const resp of responses) {
     const responseId = resp.responseId;
     const exists = await db.Teacher.findOne({ where: { form_response_id: responseId } });
@@ -170,13 +169,14 @@ async function syncTeachers() {
     const answers = resp.answers;
     await db.Teacher.create({
       form_response_id: responseId,
-      name: answers["2f647977"]?.textAnswers.answers[0].value || "",
-      email: answers["53dcbc10"]?.textAnswers.answers[0].value || "",
-      room: answers["38b6b35f"]?.textAnswers.answers[0].value || "",
-      available: answers["0f394b75"]?.textAnswers.answers[0].value === "Yes",
-      department: answers["66644a8c"]?.textAnswers.answers[0].value || "",
+      name:          answers["2f647977"]?.textAnswers.answers[0].value || "",
+      email:         answers["53dcbc10"]?.textAnswers.answers[0].value || "",
+      room:          answers["38b6b35f"]?.textAnswers.answers[0].value || "",
+      available:     answers["0f394b75"]?.textAnswers.answers[0].value === "Yes",
+      can_hold_club: answers["can_hold_club_field_id"]?.textAnswers.answers[0].value === "Yes", // update with real field ID if you add this to the form
+      department:    answers["66644a8c"]?.textAnswers.answers[0].value || "",
       assigned_club: answers["3819750e"]?.textAnswers.answers[0].value || null,
-      source: "google_form",
+      source:        "google_form",
     });
   }
 }
@@ -194,15 +194,16 @@ app.get("/teacher-availability", async (req, res) => {
     });
 
     const teachers = dbTeachers.map((teacher) => ({
-      id: teacher.id,
-      name: teacher.name,
-      email: teacher.email,
-      room: teacher.room,
-      available: teacher.available ? "Yes" : "No",
+      id:            teacher.id,
+      name:          teacher.name,
+      email:         teacher.email,
+      room:          teacher.room,
+      available:     teacher.available ? "Yes" : "No",
       availableBool: teacher.available,
-      department: teacher.department,
-      assigned: teacher.assigned_club,
-      source: teacher.source,
+      can_hold_club: teacher.can_hold_club ? "Yes" : "No",
+      department:    teacher.department,
+      assigned:      teacher.assigned_club,
+      source:        teacher.source,
       availableClubs: wednesdayClubs.map((c) => c.club_name),
     }));
 
@@ -213,19 +214,20 @@ app.get("/teacher-availability", async (req, res) => {
   }
 });
 
-// POST new teacher (manual entry)
+// POST new teacher (manual entry or bulk import)
 app.post("/teacher-availability", async (req, res) => {
   try {
-    const { name, email, room, available, department, assigned_club } = req.body;
-    
+    const { name, email, room, available, can_hold_club, department, assigned_club } = req.body;
+
     const newTeacher = await db.Teacher.create({
       name,
       email,
       room,
-      available: available === "Yes" || available === true,
+      available:     toBoolean(available),
+      can_hold_club: toBoolean(can_hold_club),
       department,
       assigned_club: assigned_club || null,
-      source: "manual",
+      source:        "manual",
     });
 
     res.json({ success: true, teacher: newTeacher });
@@ -235,11 +237,11 @@ app.post("/teacher-availability", async (req, res) => {
   }
 });
 
-// PUT update teacher
+// PUT update teacher (admin edit)
 app.put("/teacher-availability/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, room, available, department, assigned_club } = req.body;
+    const { name, email, room, available, can_hold_club, department, assigned_club } = req.body;
 
     const teacher = await db.Teacher.findByPk(id);
     if (!teacher) {
@@ -250,7 +252,8 @@ app.put("/teacher-availability/:id", async (req, res) => {
       name,
       email,
       room,
-      available: available === "Yes" || available === true,
+      available:     toBoolean(available),
+      can_hold_club: toBoolean(can_hold_club),
       department,
       assigned_club: assigned_club || null,
     });
@@ -274,7 +277,7 @@ app.put("/teacher-availability/:id/confirm", async (req, res) => {
     }
 
     await teacher.update({
-      available: available === true || available === "Yes",
+      available: toBoolean(available),
     });
 
     res.json({ success: true, teacher });
@@ -288,10 +291,10 @@ app.put("/teacher-availability/:id/confirm", async (req, res) => {
 app.delete("/teacher-availability/:id/:source", async (req, res) => {
   try {
     const { id, source } = req.params;
-    
+
     if (source === "google_form") {
-      return res.status(400).json({ 
-        error: "Cannot delete teachers from Google Forms. These must be managed through Google Forms." 
+      return res.status(400).json({
+        error: "Cannot delete teachers from Google Forms. These must be managed through Google Forms.",
       });
     }
 
@@ -309,24 +312,24 @@ app.delete("/teacher-availability/:id/:source", async (req, res) => {
 });
 
 // ============================================
-// EXISTING ENDPOINTS (Wednesday Clubs, etc.)
+// WEDNESDAY CLUB ENDPOINTS
 // ============================================
 
 app.delete("/wednesday-club/:identifier/:source", async (req, res) => {
   try {
     const { identifier, source } = req.params;
     console.log("Delete Wednesday club request:", { identifier, source });
-    
+
     if (source === "google_form") {
-      return res.status(400).json({ 
-        error: "Cannot delete clubs from Google Forms. These must be managed through Google Forms." 
+      return res.status(400).json({
+        error: "Cannot delete clubs from Google Forms. These must be managed through Google Forms.",
       });
     }
 
-    const whereClause = isNaN(identifier) 
+    const whereClause = isNaN(identifier)
       ? { leader_email: identifier }
       : { id: parseInt(identifier) };
-    
+
     const deleted = await db.WednesdayClub.destroy({ where: whereClause });
 
     if (deleted) {
@@ -351,14 +354,12 @@ async function syncWednesdayClubs() {
     });
     const answers = resp.answers;
     if (exists) {
-      const formMission =
-        answers["5967c5af"]?.textAnswers?.answers?.[0]?.value;
-      const formPhoto =
-        answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId;
+      const formMission = answers["5967c5af"]?.textAnswers?.answers?.[0]?.value;
+      const formPhoto   = answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId;
 
       const updates = {};
-      if (formPhoto) updates.photo_file_id = formPhoto;
-      if (formMission && !exists.mission) updates.mission = formMission;
+      if (formPhoto)                      updates.photo_file_id = formPhoto;
+      if (formMission && !exists.mission) updates.mission       = formMission;
 
       if (Object.keys(updates).length > 0) {
         await exists.update(updates);
@@ -367,28 +368,18 @@ async function syncWednesdayClubs() {
     }
     const newClub = await db.WednesdayClub.create({
       form_response_id: responseId,
-      club_name:
-        answers["58d95ef3"]?.textAnswers?.answers?.[0]?.value || "",
-      mission:
-        answers["5967c5af"]?.textAnswers?.answers?.[0]?.value || "",
-      leader_email:
-        answers["6bdbdc40"]?.textAnswers?.answers?.[0]?.value || "",
-      category:
-        answers["58e9aaf9"]?.textAnswers?.answers?.[0]?.value || "",
-      advisor:
-        answers["5573285b"]?.textAnswers?.answers?.[0]?.value || "",
-      room:
-        answers["0478ecea"]?.textAnswers?.answers?.[0]?.value || "",
-      day:
-        answers["33d1d5a4"]?.textAnswers?.answers?.[0]?.value || "",
-      time:
-        answers["21c77a77"]?.textAnswers?.answers?.[0]?.value || "",
-      members_raw:
-        answers["1341f104"]?.textAnswers?.answers?.[0]?.value || "",
-      photo_file_id:
-        answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
+      club_name:    answers["58d95ef3"]?.textAnswers?.answers?.[0]?.value || "",
+      mission:      answers["5967c5af"]?.textAnswers?.answers?.[0]?.value || "",
+      leader_email: answers["6bdbdc40"]?.textAnswers?.answers?.[0]?.value || "",
+      category:     answers["58e9aaf9"]?.textAnswers?.answers?.[0]?.value || "",
+      advisor:      answers["5573285b"]?.textAnswers?.answers?.[0]?.value || "",
+      room:         answers["0478ecea"]?.textAnswers?.answers?.[0]?.value || "",
+      day:          answers["33d1d5a4"]?.textAnswers?.answers?.[0]?.value || "",
+      time:         answers["21c77a77"]?.textAnswers?.answers?.[0]?.value || "",
+      members_raw:  answers["1341f104"]?.textAnswers?.answers?.[0]?.value || "",
+      photo_file_id: answers["643764f9"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
       status: "Pending",
-      merge: "No",
+      merge:  "No",
       source: "google_form",
     });
     if (newClub.photo_file_id) {
@@ -404,18 +395,18 @@ app.get("/wednesday-club", async (req, res) => {
     const dbClubs = await db.WednesdayClub.findAll();
 
     const clubs = dbClubs.map((club) => ({
-      dbId: club.id,
-      club: club.club_name,
-      email: club.leader_email,
-      category: club.category,
-      advisor: club.advisor,
-      room: club.room,
+      dbId:       club.id,
+      club:       club.club_name,
+      email:      club.leader_email,
+      category:   club.category,
+      advisor:    club.advisor,
+      room:       club.room,
       membersRaw: club.members_raw,
-      members: club.members_raw.split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
-      status: club.status,
-      source: club.source,
-      mission: club.mission || "",
-      memberCap: club.member_cap ?? null,
+      members:    club.members_raw.split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
+      status:     club.status,
+      source:     club.source,
+      mission:    club.mission || "",
+      memberCap:  club.member_cap ?? null,
     }));
 
     res.json(clubs);
@@ -430,16 +421,16 @@ app.post("/wednesday-club", async (req, res) => {
     const { club, email, category, advisor, room, members, status, mission, memberCap } = req.body;
 
     const newClub = await db.WednesdayClub.create({
-      club_name: club,
+      club_name:    club,
       leader_email: email,
-      category: category,
-      advisor: advisor,
-      room: room,
-      members_raw: members,
-      status: status || "Pending",
-      mission: mission || "",
-      member_cap: memberCap || null,
-      source: "manual",
+      category,
+      advisor,
+      room,
+      members_raw:  members,
+      status:       status || "Pending",
+      mission:      mission || "",
+      member_cap:   memberCap || null,
+      source:       "manual",
     });
 
     console.log("New Wednesday club created:", newClub);
@@ -454,20 +445,20 @@ app.delete("/morning-club/:identifier/:source", async (req, res) => {
   try {
     const { identifier, source } = req.params;
     console.log("Delete request received:", { identifier, source });
-    
+
     if (source === "google_form") {
       console.log("Cannot delete Google Form club");
-      return res.status(400).json({ 
-        error: "Cannot delete clubs from Google Forms. These must be managed through Google Forms." 
+      return res.status(400).json({
+        error: "Cannot delete clubs from Google Forms. These must be managed through Google Forms.",
       });
     }
 
     console.log("Attempting to delete club with identifier:", identifier);
-    
-    const whereClause = isNaN(identifier) 
+
+    const whereClause = isNaN(identifier)
       ? { leader_email: identifier }
       : { id: parseInt(identifier) };
-    
+
     const deleted = await db.MorningClub.destroy({ where: whereClause });
 
     console.log("Rows deleted:", deleted);
@@ -490,21 +481,21 @@ app.get("/morning-club", async (req, res) => {
     const dbClubs = await db.MorningClub.findAll();
 
     const clubs = dbClubs.map((club) => ({
-      dbId: club.id,
-      club: club.club_name,
-      email: club.leader_email,
-      category: club.category,
-      advisor: club.advisor,
-      room: club.room,
-      day: club.day,
-      time: club.time,
+      dbId:       club.id,
+      club:       club.club_name,
+      email:      club.leader_email,
+      category:   club.category,
+      advisor:    club.advisor,
+      room:       club.room,
+      day:        club.day,
+      time:       club.time,
       membersRaw: club.members_raw,
-      members: club.members_raw.split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
-      status: club.status,
-      merge: club.merge,
-      source: club.source,
-      mission: club.mission || "",
-      memberCap: club.member_cap ?? null,
+      members:    club.members_raw.split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
+      status:     club.status,
+      merge:      club.merge,
+      source:     club.source,
+      mission:    club.mission || "",
+      memberCap:  club.member_cap ?? null,
     }));
 
     res.json(clubs);
@@ -519,19 +510,19 @@ app.post("/morning-club", async (req, res) => {
     const { club, email, category, advisor, room, day, time, members, status, merge, mission, memberCap } = req.body;
 
     const newClub = await db.MorningClub.create({
-      club_name: club,
+      club_name:    club,
       leader_email: email,
-      category: category,
-      advisor: advisor,
-      room: room,
-      day: day,
-      time: time,
-      members_raw: members,
-      status: status || "Pending",
-      merge: merge || "No",
-      mission: mission || "",
-      member_cap: memberCap || null,
-      source: "manual",
+      category,
+      advisor,
+      room,
+      day,
+      time,
+      members_raw:  members,
+      status:       status || "Pending",
+      merge:        merge  || "No",
+      mission:      mission || "",
+      member_cap:   memberCap || null,
+      source:       "manual",
     });
 
     console.log("New club created:", newClub);
@@ -548,23 +539,16 @@ app.get("/approved-morning-clubs", async (req, res) => {
 
     const clubs = await db.MorningClub.findAll({
       where: { status: "Approved" },
-      attributes: [
-        "id",
-        "club_name",
-        "mission",
-        "photo_file_id",
-        "category",
-        "member_cap",
-      ],
+      attributes: ["id", "club_name", "mission", "photo_file_id", "category", "member_cap"],
     });
 
     res.json(
       clubs.map(c => ({
-        dbId: c.id,
-        club: c.club_name,
-        mission: c.mission,
-        photo: c.photo_file_id,
-        category: c.category,
+        dbId:      c.id,
+        club:      c.club_name,
+        mission:   c.mission,
+        photo:     c.photo_file_id,
+        category:  c.category,
         memberCap: c.member_cap ?? null,
       }))
     );
@@ -580,23 +564,16 @@ app.get("/approved-wednesday-clubs", async (req, res) => {
 
     const clubs = await db.WednesdayClub.findAll({
       where: { status: "Approved" },
-      attributes: [
-        "id",
-        "club_name",
-        "mission",
-        "photo_file_id",
-        "category",
-        "member_cap",
-      ],
+      attributes: ["id", "club_name", "mission", "photo_file_id", "category", "member_cap"],
     });
 
     res.json(
       clubs.map(c => ({
-        dbId: c.id,
-        club: c.club_name,
-        mission: c.mission,
-        photo: c.photo_file_id,
-        category: c.category,
+        dbId:      c.id,
+        club:      c.club_name,
+        mission:   c.mission,
+        photo:     c.photo_file_id,
+        category:  c.category,
         memberCap: c.member_cap ?? null,
       }))
     );
@@ -608,7 +585,6 @@ app.get("/approved-wednesday-clubs", async (req, res) => {
 
 app.get("/ai-merges", async (req, res) => {
   try {
-    // Get Google Form clubs
     const formResponses = await getFormResponses(
       "1fvK9FLMsuwixNsDF6vbG37H_IFpm-Kh7aTnYwKdgYCM"
     );
@@ -616,24 +592,21 @@ app.get("/ai-merges", async (req, res) => {
     const formClubs = formResponses.map(resp => {
       const answers = resp.answers;
       return {
-        club: answers["58d95ef3"]?.textAnswers.answers[0].value?.trim() || "",
+        club:    answers["58d95ef3"]?.textAnswers.answers[0].value?.trim() || "",
         mission: answers["76676db8"]?.textAnswers.answers[0].value?.trim() || "",
-        email: answers["6bdbdc40"]?.textAnswers.answers[0].value?.trim() || "",
+        email:   answers["6bdbdc40"]?.textAnswers.answers[0].value?.trim() || "",
       };
     });
 
-    // Get manually added clubs from DB
-    const dbClubs = await db.MorningClub.findAll();
+    const dbClubs    = await db.MorningClub.findAll();
     const manualClubs = dbClubs.map(club => ({
-      club: club.club_name.trim(),
+      club:    club.club_name.trim(),
       mission: (club.mission || "").trim(),
-      email: club.leader_email.trim(),
+      email:   club.leader_email.trim(),
     }));
 
-    // Combine both sources
     const allClubs = [...manualClubs, ...formClubs];
 
-    // Deduplicate by club name (keep the first occurrence)
     const seen = new Set();
     const uniqueClubs = allClubs.filter(c => {
       const key = c.club.toLowerCase();
@@ -643,7 +616,6 @@ app.get("/ai-merges", async (req, res) => {
     });
 
     console.log("/ai-merges returning unique clubs:", uniqueClubs);
-
     res.json(uniqueClubs);
   } catch (err) {
     console.error("Failed to fetch AI merge clubs:", err);
@@ -654,29 +626,17 @@ app.get("/ai-merges", async (req, res) => {
 app.get("/openai-test", async (req, res) => {
   try {
     console.log("OpenAI test endpoint hit");
-
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [
-        { role: "user", content: "Reply with exactly the word CONNECTED." }
-      ],
+      messages: [{ role: "user", content: "Reply with exactly the word CONNECTED." }],
       temperature: 0,
     });
-
     const reply = completion.choices[0].message.content;
-
     console.log("OpenAI replied:", reply);
-
-    res.json({
-      success: true,
-      reply,
-    });
+    res.json({ success: true, reply });
   } catch (err) {
     console.error("OpenAI test failed:", err);
-    res.status(500).json({
-      success: false,
-      error: err.message,
-    });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
@@ -685,34 +645,34 @@ async function syncMorningClubs() {
 
   for (const resp of responses) {
     const responseId = resp.responseId;
-    const exists = await db.MorningClub.findOne({ where: { form_response_id: responseId } });
-    const answers = resp.answers;
+    const exists     = await db.MorningClub.findOne({ where: { form_response_id: responseId } });
+    const answers    = resp.answers;
 
     if (exists) {
       const formMission = answers["76676db8"]?.textAnswers?.answers?.[0]?.value;
-      const formPhoto = answers["2cbc5d6b"]?.fileUploadAnswers?.answers?.[0]?.fileId;
+      const formPhoto   = answers["2cbc5d6b"]?.fileUploadAnswers?.answers?.[0]?.fileId;
 
       const updates = {};
-      if (formPhoto) updates.photo_file_id = formPhoto;
-      if (formMission && !exists.mission) updates.mission = formMission;
+      if (formPhoto)                      updates.photo_file_id = formPhoto;
+      if (formMission && !exists.mission) updates.mission       = formMission;
       if (Object.keys(updates).length > 0) await exists.update(updates);
       continue;
     }
 
     const newClub = await db.MorningClub.create({
       form_response_id: responseId,
-      club_name: answers["58d95ef3"]?.textAnswers?.answers?.[0]?.value || "",
-      mission: answers["76676db8"]?.textAnswers?.answers?.[0]?.value || "",
+      club_name:    answers["58d95ef3"]?.textAnswers?.answers?.[0]?.value || "",
+      mission:      answers["76676db8"]?.textAnswers?.answers?.[0]?.value || "",
       leader_email: answers["6bdbdc40"]?.textAnswers?.answers?.[0]?.value || "",
-      category: answers["58e9aaf9"]?.textAnswers?.answers?.[0]?.value || "",
-      advisor: answers["5573285b"]?.textAnswers?.answers?.[0]?.value || "",
-      room: answers["0478ecea"]?.textAnswers?.answers?.[0]?.value || "",
-      day: answers["33d1d5a4"]?.textAnswers?.answers?.[0]?.value || "",
-      time: answers["21c77a77"]?.textAnswers?.answers?.[0]?.value || "",
-      members_raw: answers["1341f104"]?.textAnswers?.answers?.[0]?.value || "",
+      category:     answers["58e9aaf9"]?.textAnswers?.answers?.[0]?.value || "",
+      advisor:      answers["5573285b"]?.textAnswers?.answers?.[0]?.value || "",
+      room:         answers["0478ecea"]?.textAnswers?.answers?.[0]?.value || "",
+      day:          answers["33d1d5a4"]?.textAnswers?.answers?.[0]?.value || "",
+      time:         answers["21c77a77"]?.textAnswers?.answers?.[0]?.value || "",
+      members_raw:  answers["1341f104"]?.textAnswers?.answers?.[0]?.value || "",
       photo_file_id: answers["2cbc5d6b"]?.fileUploadAnswers?.answers?.[0]?.fileId || "",
       status: "Pending",
-      merge: "No",
+      merge:  "No",
       source: "google_form",
     });
 
@@ -723,20 +683,7 @@ async function syncMorningClubs() {
 app.put("/morning-club/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      club,
-      email,
-      category,
-      advisor,
-      room,
-      day,
-      time,
-      members,
-      status,
-      merge,
-      mission,
-      memberCap,
-    } = req.body;
+    const { club, email, category, advisor, room, day, time, members, status, merge, mission, memberCap } = req.body;
 
     const clubToUpdate = await db.MorningClub.findByPk(id);
     if (!clubToUpdate) {
@@ -744,14 +691,14 @@ app.put("/morning-club/:id", async (req, res) => {
     }
 
     await clubToUpdate.update({
-      club_name: club,
+      club_name:    club,
       leader_email: email,
       category,
       advisor,
       room,
       day,
       time,
-      members_raw: members,
+      members_raw:  members,
       status,
       merge,
       mission,
@@ -776,12 +723,12 @@ app.put("/wednesday-club/:id", async (req, res) => {
     }
 
     await clubToUpdate.update({
-      club_name: club,
+      club_name:    club,
       leader_email: email,
       category,
       advisor,
       room,
-      members_raw: members,
+      members_raw:  members,
       status,
       mission,
       member_cap: memberCap !== undefined ? memberCap : clubToUpdate.member_cap,
@@ -799,14 +746,14 @@ app.post("/assess-similarity", async (req, res) => {
     const morningClubs = req.body;
     console.log("Incoming clubs for AI similarity:", req.body);
 
-    const texts = morningClubs.map(c => `${c.club}: ${c.mission}`);
+    const texts    = morningClubs.map(c => `${c.club}: ${c.mission}`);
     console.log("Texts sent to OpenAI:", texts);
     const response = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: texts,
     });
 
-    const embeddings = response.data.map(d => d.embedding);
+    const embeddings  = response.data.map(d => d.embedding);
     const suggestions = [];
 
     for (let i = 0; i < morningClubs.length; i++) {
@@ -815,9 +762,9 @@ app.post("/assess-similarity", async (req, res) => {
         console.log(`Comparing "${morningClubs[i].club}" and "${morningClubs[j].club}" => similarity: ${score}`);
         if (score > 0.7) {
           suggestions.push({
-            clubA: morningClubs[i].club,
+            clubA:  morningClubs[i].club,
             emailA: morningClubs[i].email,
-            clubB: morningClubs[j].club,
+            clubB:  morningClubs[j].club,
             emailB: morningClubs[j].email,
             suggestion: "Merge suggested",
           });
@@ -830,7 +777,6 @@ app.post("/assess-similarity", async (req, res) => {
     }
 
     res.json(suggestions);
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Similarity check failed" });
@@ -841,7 +787,7 @@ app.post("/assess-similarity", async (req, res) => {
 app.post('/send-merge-emails', async (req, res) => {
   console.log('/send-merge-emails called');
   const adminEmail = req.body.adminEmail;
-  const merges = req.body.merges || [];
+  const merges     = req.body.merges || [];
 
   if (!adminEmail || !Array.isArray(merges) || merges.length === 0) {
     console.log('Missing admin email or merges');
@@ -862,8 +808,8 @@ app.post('/send-merge-emails', async (req, res) => {
 
     try {
       const info = await resend.emails.send({
-        from: "Club Dashboard <onboarding@resend.dev>",
-        to: recipients,
+        from:    "Club Dashboard <onboarding@resend.dev>",
+        to:      recipients,
         subject: `Merge suggestion: ${merge.clubA} + ${merge.clubB}`,
         text: `Hello!
         After reviewing club proposals, we noticed that your clubs have similar missions and activities. We suggest considering a potential merge to make your efforts even stronger.
@@ -874,7 +820,7 @@ app.post('/send-merge-emails', async (req, res) => {
 
         Both club leaders are cc'd on this email. Please coordinate with each other and let us know what you decide.
 
-        Thank you for your collaboration and dedication to your clubs!`
+        Thank you for your collaboration and dedication to your clubs!`,
       });
       console.log('Email send result:', info);
     } catch (err) {
@@ -894,7 +840,6 @@ app.post("/club-enrollments", async (req, res) => {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
 
-    // Look up the actual user record by email
     const user = await db.User.findOne({ where: { usr_email: user_id } });
     if (!user) {
       return res.status(404).json({ success: false, error: "User not found" });
@@ -917,7 +862,7 @@ app.post("/club-enrollments", async (req, res) => {
       return res.status(400).json({ success: false, error: "Already enrolled in this club" });
     }
 
-    const ClubModel = club_type === "morning" ? db.MorningClub : db.WednesdayClub;
+    const ClubModel  = club_type === "morning" ? db.MorningClub : db.WednesdayClub;
     const clubRecord = await ClubModel.findByPk(club_id);
     if (clubRecord?.member_cap != null) {
       const currentCount = await db.ClubEnrollment.count({ where: { club_id, club_type } });
@@ -927,7 +872,6 @@ app.post("/club-enrollments", async (req, res) => {
     }
 
     const enrollment = await db.ClubEnrollment.create({ user_id: actualUserId, club_id, club_type });
-
     res.json({ success: true, enrollment });
   } catch (err) {
     console.error("Error enrolling in club:", err);
@@ -958,8 +902,7 @@ app.delete("/club-enrollments", async (req, res) => {
 app.get("/user-clubs/:user_id", async (req, res) => {
   try {
     const { user_id } = req.params;
-    
-    // Look up user by email
+
     const user = await db.User.findOne({ where: { usr_email: user_id } });
     if (!user) return res.json({ success: true, enrollments: [] });
 
@@ -977,7 +920,7 @@ app.get("/user-clubs/:user_id", async (req, res) => {
 app.get("/club/:club_id/members", async (req, res) => {
   try {
     const { club_id } = req.params;
-    const club_type = req.query.type; 
+    const club_type   = req.query.type;
     if (!club_type) return res.status(400).json({ success: false, error: "Missing club type" });
 
     const members = await db.ClubEnrollment.findAll({
@@ -995,9 +938,9 @@ app.get("/club/:club_id/members", async (req, res) => {
 });
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname  = path.dirname(__filename);
 
-app.use(express.static(path.join(__dirname, "../dist"))); 
+app.use(express.static(path.join(__dirname, "../dist")));
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "../dist", "index.html"));
 });
@@ -1006,8 +949,6 @@ db.sequelize
   .sync()
   .then(() => {
     console.log("Sequelize synced");
-    app.listen(PORT, () =>
-      console.log(`Server running on port ${PORT}`)
-    );
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
   .catch(console.error);

@@ -26,6 +26,10 @@ export default (sequelize) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      can_hold_club: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
       department: {
         type: DataTypes.STRING,
         allowNull: true,
