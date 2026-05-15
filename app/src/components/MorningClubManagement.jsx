@@ -360,7 +360,7 @@ const toggleClubSelection = (clubId) => {
               // For new clubs, save to backend
               try {
                 const newClub = {
-                  club: updatedData.clubName,
+                  club: updatedData.club,
                   email: updatedData.email,
                   category: updatedData.category,
                   advisor: updatedData.advisor,
@@ -368,8 +368,6 @@ const toggleClubSelection = (clubId) => {
                   day: updatedData.day,
                   time: updatedData.time,
                   members: updatedData.members,
-                  membersRaw: updatedData.members,
-                  req_advisor: "",
                   status: updatedData.status,
                   merge: updatedData.merge,
                   mission: updatedData.mission,
@@ -403,7 +401,7 @@ const toggleClubSelection = (clubId) => {
                   headers: { "Content-Type": "application/json" },
                   credentials: "include",
                   body: JSON.stringify({
-                    club: updatedData.clubName,
+                    club: updatedData.club,
                     email: updatedData.email,
                     category: updatedData.category,
                     advisor: updatedData.advisor,

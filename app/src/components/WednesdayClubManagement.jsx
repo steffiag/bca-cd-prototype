@@ -371,14 +371,12 @@ export default function WednesdayClubManagement({ user }) {
           if (selectedClub.isNew) {
             try {
               const newClub = {
-                club: updatedData.clubName,
+                club: updatedData.club,
                 email: updatedData.email,
                 category: updatedData.category,
                 advisor: updatedData.advisor,
                 room: updatedData.room,
                 members: updatedData.members,
-                membersRaw: updatedData.members,
-                req_advisor: "",
                 status: updatedData.status || "Pending",
                 mission: updatedData.mission,
                 memberCap: updatedData.memberCap !== "" && updatedData.memberCap != null ? Number(updatedData.memberCap) : null,
@@ -411,7 +409,7 @@ export default function WednesdayClubManagement({ user }) {
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
                 body: JSON.stringify({
-                  club: updatedData.clubName,
+                  club: updatedData.club,
                   email: updatedData.email,
                   category: updatedData.category,
                   advisor: updatedData.advisor,

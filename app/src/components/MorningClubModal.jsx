@@ -11,18 +11,19 @@ function cleanMembers(raw) {
 
 export default function EditClubModal({ club, isOpen, onClose, onSave }) {
   const [formData, setFormData] = useState({
-    clubName: club.club || "",
-    email: club.email || "",
-    category: club.category || "",
-    advisor: club.advisor || "",
-    room: club.room || "",
-    day: club.day || "",
-    time: club.time || "",
-    members: cleanMembers(club.membersRaw),
-    status: club.status || "Pending",
-    mission: club.mission || "",
-    memberCap: club.memberCap ?? "",
-  });
+  clubName: club.club || "",
+  email: club.email || "",
+  category: club.category || "",
+  advisor: club.advisor || "",
+  room: club.room || "",
+  day: club.day || "",
+  time: club.time || "",
+  members: cleanMembers(club.membersRaw),
+  status: club.status || "Pending",
+  merge: club.merge || "No",
+  mission: club.mission || "",
+  memberCap: club.memberCap ?? "",
+});
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imageVersion, setImageVersion] = useState(Date.now());
