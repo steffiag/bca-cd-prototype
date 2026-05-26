@@ -908,7 +908,7 @@ export default function TeacherAvailability({ user }) {
               </span>
             )}
           </button>
-          <button style={styles.btn("primary")} onClick={handleAddNewTeacher}>+ Add Teacher</button>
+          <button style={styles.btn("primary")} onClick={handleAddNewTeacher}>+ Add Teacher Availability</button>
         </div>
       </div>
 
