@@ -135,10 +135,10 @@ setAiMerges(suggestions);
 
           <button
             onClick={() =>
-              (window.location.href = "/auth/google")
+              (window.location.href = "/auth/microsoft")
             }
           >
-            Login with Google
+            Login with Microsoft
           </button>
         </div>
       </div>
