@@ -17,8 +17,8 @@ export default function WednesdayClubManagement({ user }) {
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [clubMembers, setClubMembers] = useState([]);
 
-  // Check if user is a teacher
   const isTeacher = user?.isTeacher || false;
+  const isAdmin = user?.isAdmin || false;
 
   useEffect(() => {
     fetch("/wednesday-club", {
@@ -231,7 +231,7 @@ export default function WednesdayClubManagement({ user }) {
       </div>
 
       {/* Add New Club Button - Only visible for teachers */}
-      {isTeacher && (
+      {(isAdmin || isTeacher) && (
         <div style={{ marginBottom: "15px", textAlign: "center" }}>
           <button 
             onClick={handleAddNewClub}
@@ -301,7 +301,7 @@ export default function WednesdayClubManagement({ user }) {
             <th>Status</th>
             <th>View/Edit</th>
             <th>Members</th>
-            {isTeacher && <th>Delete</th>}
+            {(isAdmin || isTeacher) && <th>Delete</th>}
           </tr>
         </thead>
         <tbody>
@@ -335,7 +335,7 @@ export default function WednesdayClubManagement({ user }) {
                 Members
               </button>
             </td>
-              {isTeacher && (
+              {(isAdmin || isTeacher) && (
                 <td>
                   <button 
                     onClick={() => handleDeleteClub(club)}

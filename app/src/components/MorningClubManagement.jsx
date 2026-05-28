@@ -17,8 +17,8 @@ export default function MorningClubManagement({ setPage, user }) {
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [clubMembers, setClubMembers] = useState([]);
 
-  // Check if user is a teacher
   const isTeacher = user?.isTeacher || false;
+  const isAdmin = user?.isAdmin || false;
 
   useEffect(() => {
     fetch("/morning-club", { credentials: "include" })
@@ -213,7 +213,7 @@ const toggleClubSelection = (clubId) => {
       </div>
 
       {/* Add New Club Button - Only visible for teachers */}
-      {isTeacher && (
+      {(isAdmin || isTeacher) && (
         <div style={{ marginBottom: "15px", textAlign: "center" }}>
           <button 
             onClick={handleAddNewClub}
@@ -286,7 +286,7 @@ const toggleClubSelection = (clubId) => {
             <th>View/Edit</th>
             <th>Members</th>
             {/* <th>Merge?</th> */}
-            {isTeacher && <th>Delete</th>}
+            {(isAdmin || isTeacher) && <th>Delete</th>}
           </tr>
         </thead>
         <tbody>
@@ -323,7 +323,7 @@ const toggleClubSelection = (clubId) => {
               </button>
             </td>
               {/* <td>{club.merge || "No"}</td> */}
-              {isTeacher && (
+              {(isAdmin || isTeacher) && (
                 <td>
                   <button 
                     onClick={() => handleDeleteClub(club)}
