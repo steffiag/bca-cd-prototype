@@ -37,7 +37,14 @@ function App() {
       })
       .then(data => {
         setUser(data);
-        setPortal("admin");
+        if (data.userType === "ADM") {
+          setPortal("admin");
+        } else if (data.userType === "TCH") {
+          setPortal("teacher");
+          setPage("teacher");
+        } else {
+          setPortal("student");
+        }
       })
       .catch(err => console.error("Auth check failed:", err));
   }, []);
@@ -192,6 +199,16 @@ setAiMerges(suggestions);
       )}
 
 
+        {portal === "teacher" && (
+          <a
+            href="#"
+            onClick={() => setPage("teacher")}
+            className={page === "teacher" ? "active" : ""}
+          >
+            Teacher Availability
+          </a>
+        )}
+
         {portal === "student" && (
           <>
             <a
@@ -281,42 +298,8 @@ setAiMerges(suggestions);
           </div>
         )} 
 
-        <div className="portal-title">{portal === "admin" ? "Admin Portal" : "Student Portal"}</div>
-        {/* Portal Toggle Buttons */}
-        <div style={{ textAlign: "center", marginBottom: "20px" }}>
-          <button
-            onClick={() => setPortal("admin")}
-            style={{
-              marginRight: "10px",
-              background: portal === "admin" ? "#4a90e2" : "#9e9e9e",
-              color: "white",
-              padding: "6px 12px",
-              border: "none",
-              borderRadius: "6px",
-              cursor: "pointer",
-            }}
-          >
-            Admin Portal
-          </button>
-          <button
-  onClick={() => {
-      setPortal("student");
-      setPage("morning");
-
-      refreshMorning();
-      refreshWednesday();
-    }}
-    style={{
-      background: portal === "student" ? "#4a90e2" : "#9e9e9e",
-      color: "white",
-      padding: "6px 12px",
-      border: "none",
-      borderRadius: "6px",
-      cursor: "pointer",
-    }}
-  >
-    Student Portal
-  </button>
+        <div className="portal-title">
+          {portal === "admin" ? "Admin Portal" : portal === "teacher" ? "Teacher Portal" : "Student Portal"}
         </div>
 
         {/* =====================
@@ -652,6 +635,10 @@ setAiMerges(suggestions);
             {page === "teacher" && <TeacherAvailability user={user} />}
           </>
         )}
+        {portal === "teacher" && (
+          <TeacherAvailability user={user} />
+        )}
+
         {portal === "student" && (
           <>
             {page === "morning" &&
