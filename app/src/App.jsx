@@ -436,23 +436,6 @@ setAiMerges(suggestions);
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <button
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "6px",
-                  border: "none",
-                  color: "white",
-                  fontSize: "16px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                title="Remove from merge group"
-              >
-                🗑️
-              </button>
               <strong>{club.name}</strong>
             </div>
             <span>{club.email}</span>

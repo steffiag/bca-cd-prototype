@@ -17,8 +17,8 @@ export default function WednesdayClubManagement({ user }) {
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [clubMembers, setClubMembers] = useState([]);
 
-  const isTeacher = user?.isTeacher || false;
-  const isAdmin = user?.isAdmin || false;
+  const isTeacher = user?.userType === "TCH";
+  const isAdmin = user?.userType === "ADM";
 
   useEffect(() => {
     fetch("/wednesday-club", {
