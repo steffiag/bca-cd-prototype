@@ -402,7 +402,7 @@ app.get("/wednesday-club", async (req, res) => {
       advisor:    club.advisor,
       room:       club.room,
       membersRaw: club.members_raw,
-      members:    club.members_raw.split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
+      members:    (club.members_raw || "").split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
       status:     club.status,
       source:     club.source,
       mission:    club.mission || "",
@@ -490,7 +490,7 @@ app.get("/morning-club", async (req, res) => {
       day:        club.day,
       time:       club.time,
       membersRaw: club.members_raw,
-      members:    club.members_raw.split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
+      members:    (club.members_raw || "").split(/[\n,]/).map(s => s.trim()).filter(s => s && !/^\d+$/.test(s)).length >= 5 ? "Yes" : "No",
       status:     club.status,
       merge:      club.merge,
       source:     club.source,
@@ -716,6 +716,7 @@ app.put("/wednesday-club/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { club, email, category, advisor, room, members, status, mission, memberCap } = req.body;
+    console.log(`PUT /wednesday-club/${id} — members received:`, members);
 
     const clubToUpdate = await db.WednesdayClub.findByPk(id);
     if (!clubToUpdate) {

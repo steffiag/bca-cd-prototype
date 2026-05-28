@@ -128,7 +128,7 @@ const toggleClubSelection = (clubId) => {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ ...club, status: bulkStatus }),
+          body: JSON.stringify({ ...club, members: club.membersRaw, status: bulkStatus }),
         });
 
         if (!response.ok) {
